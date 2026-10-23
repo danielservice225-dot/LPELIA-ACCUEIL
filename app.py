@@ -1,9 +1,8 @@
 """Backend de LPELIA Accueil : assistant vocal d'accueil pour une école.
 
-- La clé API reste sur le serveur (ANTHROPIC_API_KEY).
-- L'école "entraîne" l'assistant depuis la page /admin : les informations saisies
-  (filières, inscriptions, contacts, questions fréquentes) sont données à Claude
-  à chaque question.
+Le fournisseur par défaut est Groq et le modèle par défaut est défini dans ce fichier.
+La clé GROQ_API_KEY doit rester dans les variables d'environnement de Render, jamais dans Git.
+Les informations configurées dans /admin sont fournies au modèle à chaque question.
 """
 import json
 import os
@@ -28,11 +27,14 @@ DATA_DIR = Path(os.getenv("DATA_DIR", BASE / "data"))
 KB_FILE = DATA_DIR / "knowledge.json"
 SEED_FILE = BASE / "knowledge.seed.json"
 
-AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower()
+# Configuration IA : Groq est le fournisseur par défaut.
+# Le modèle fonctionne même si GROQ_MODEL n'est pas défini ou est vide sur Render.
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower() or "groq"
 if AI_PROVIDER not in {"groq", "anthropic"}:
     AI_PROVIDER = "groq"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
+GROQ_MODEL = os.getenv("GROQ_MODEL", "").strip() or DEFAULT_GROQ_MODEL
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
 MODEL = GROQ_MODEL if AI_PROVIDER == "groq" else CLAUDE_MODEL
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "600"))
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
