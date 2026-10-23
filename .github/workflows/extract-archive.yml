@@ -1,0 +1,43 @@
+name: Extract and prepare LPELIA-ACCUEIL
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract application archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f lpelia-accueil.zip
+          mkdir -p /tmp/lpelia-archive
+          unzip -o lpelia-accueil.zip -d /tmp/lpelia-archive
+          test -d /tmp/lpelia-archive/voix-claude
+          cp -a /tmp/lpelia-archive/voix-claude/. .
+          git status --short
+
+      - name: Commit extracted application files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .dockerignore .env.example .gitignore Dockerfile README.md app.py knowledge.seed.json render.yaml requirements.txt static
+          if git diff --cached --quiet; then
+            echo "Application files already extracted."
+          else
+            git commit -m "Extract LPELIA-ACCUEIL application from ZIP"
+            git push
+          fi
