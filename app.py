@@ -15,8 +15,6 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import anthropic
-import openai
-from openai import AsyncOpenAI
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,12 +26,7 @@ DATA_DIR = Path(os.getenv("DATA_DIR", BASE / "data"))
 KB_FILE = DATA_DIR / "knowledge.json"
 SEED_FILE = BASE / "knowledge.seed.json"
 
-AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower()
-if AI_PROVIDER not in {"groq", "anthropic"}:
-    AI_PROVIDER = "groq"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
-MODEL = GROQ_MODEL if AI_PROVIDER == "groq" else CLAUDE_MODEL
+MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "600"))
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
 ADMIN_CODE = os.getenv("ADMIN_CODE", "").strip()
@@ -47,7 +40,6 @@ DEFAULT_WELCOME = "Bonjour, je suis LPELIA Accueil. Posez-moi vos questions sur 
 
 app = FastAPI(title="LPELIA Accueil", docs_url=None, redoc_url=None)
 _client: anthropic.AsyncAnthropic | None = None
-_groq_client: AsyncOpenAI | None = None
 _hits: dict[str, deque] = defaultdict(deque)
 _day = {"d": "", "n": 0}
 
@@ -140,28 +132,11 @@ def build_system(kb: Knowledge) -> str:
 
 # ---------------------------------------------------------------- utilitaires
 
-def get_anthropic_client() -> anthropic.AsyncAnthropic | None:
+def get_client() -> anthropic.AsyncAnthropic | None:
     global _client
     if _client is None and os.getenv("ANTHROPIC_API_KEY"):
         _client = anthropic.AsyncAnthropic()
     return _client
-
-
-def get_groq_client() -> AsyncOpenAI | None:
-    global _groq_client
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if _groq_client is None and api_key:
-        _groq_client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-    return _groq_client
-
-
-def get_client():
-    return get_groq_client() if AI_PROVIDER == "groq" else get_anthropic_client()
-
-
-def api_key_configured() -> bool:
-    key = "GROQ_API_KEY" if AI_PROVIDER == "groq" else "ANTHROPIC_API_KEY"
-    return bool(os.getenv(key, "").strip())
 
 
 @app.middleware("http")
@@ -241,7 +216,7 @@ def sse(data: dict) -> str:
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "provider": AI_PROVIDER, "model": MODEL, "key_configured": api_key_configured()}
+    return {"ok": True, "model": MODEL, "key_configured": bool(os.getenv("ANTHROPIC_API_KEY"))}
 
 
 @app.get("/api/config")
@@ -271,8 +246,7 @@ async def chat(body: ChatBody, request: Request):
 
     client = get_client()
     if client is None:
-        key_name = "GROQ_API_KEY" if AI_PROVIDER == "groq" else "ANTHROPIC_API_KEY"
-        return JSONResponse({"detail": f"{key_name} manquante sur le serveur."}, status_code=503)
+        return JSONResponse({"detail": "ANTHROPIC_API_KEY manquante sur le serveur."}, status_code=503)
 
     msgs = [m.model_dump() for m in body.messages][-MAX_HISTORY:]
     while msgs and msgs[0]["role"] != "user":
@@ -287,32 +261,22 @@ async def chat(body: ChatBody, request: Request):
 
     async def stream():
         try:
-            if AI_PROVIDER == "groq":
-                groq_messages = [{"role": "system", "content": system}] + msgs
-                response = await client.chat.completions.create(
-                    model=MODEL, messages=groq_messages, max_tokens=MAX_TOKENS, stream=True
-                )
-                async for chunk in response:
-                    if chunk.choices:
-                        piece = chunk.choices[0].delta.content
-                        if isinstance(piece, str) and piece:
-                            yield sse({"t": piece})
-            else:
-                async with client.messages.stream(
-                    model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=msgs
-                ) as response:
-                    async for piece in response.text_stream:
-                        yield sse({"t": piece})
+            async with client.messages.stream(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                system=system,
+                messages=msgs,
+            ) as s:
+                async for text in s.text_stream:
+                    yield sse({"t": text})
             yield sse({"done": True})
-        except (anthropic.AuthenticationError, openai.AuthenticationError):
+        except anthropic.AuthenticationError:
             yield sse({"error": "server_auth"})
-        except (anthropic.RateLimitError, openai.RateLimitError):
+        except anthropic.RateLimitError:
             yield sse({"error": "overloaded"})
         except anthropic.APIStatusError as e:
             yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
-        except openai.APIStatusError as e:
-            yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
-        except (anthropic.APIConnectionError, openai.APIConnectionError):
+        except anthropic.APIConnectionError:
             yield sse({"error": "other"})
 
     return StreamingResponse(
