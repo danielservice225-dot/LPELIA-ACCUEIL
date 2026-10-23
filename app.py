@@ -31,7 +31,7 @@ SEED_FILE = BASE / "knowledge.seed.json"
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower()
 if AI_PROVIDER not in {"groq", "anthropic"}:
     AI_PROVIDER = "groq"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
 MODEL = GROQ_MODEL if AI_PROVIDER == "groq" else CLAUDE_MODEL
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "600"))
