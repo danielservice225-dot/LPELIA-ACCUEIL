@@ -3,15 +3,17 @@
 Assistant vocal d'accueil pour l'école : le visiteur parle (ou écrit), l'assistant répond et la réponse
 est lue à voix haute sur les haut-parleurs de son téléphone, tablette ou ordinateur.
 
-- `app.py` : backend Python (FastAPI). Garde la clé API, envoie les réponses en streaming.
+- `app.py` : backend Python (FastAPI). Garde les clés API côté serveur et envoie les réponses en streaming.
+- Le fournisseur par défaut est Groq (llama-3.3-70b-versatile). Anthropic/Claude reste disponible en option.
 - `static/index.html` : l'assistant pour les visiteurs.
 - `static/admin.html` : la page d'entraînement, à l'adresse `/admin`.
 - `knowledge.seed.json` : les connaissances de départ (voir « Sauvegarder l'entraînement »).
 
 ## 1. Obtenir une clé API
 
-Créez une clé sur https://console.anthropic.com (section API keys). Elle commence par `sk-ant-`.
-Elle reste sur le serveur, jamais dans la page web.
+Créez une clé Groq sur https://console.groq.com/keys et ajoutez-la sur Render comme variable secrète `GROQ_API_KEY`.
+La clé reste sur le serveur, jamais dans la page web. Par défaut, LPELIA Accueil utilise Groq (llama-3.3-70b-versatile).
+Pour utiliser Claude à la place, réglez `AI_PROVIDER=anthropic` et ajoutez `ANTHROPIC_API_KEY` depuis https://console.anthropic.com.
 
 ## 2. Mettre en ligne (nécessaire pour le micro sur téléphone et tablette)
 
@@ -19,8 +21,8 @@ Les navigateurs n'autorisent le micro que sur une adresse **https**. Render la f
 
 1. Mettez ce dossier sur GitHub (un dépôt, même privé).
 2. Sur https://render.com : **New > Blueprint**, choisissez le dépôt. Render lit `render.yaml`.
-3. Renseignez `ANTHROPIC_API_KEY` et `ADMIN_CODE` quand il les demande. Laissez `ACCESS_CODE` vide pour un accueil
-   ouvert à tous.
+3. Renseignez `GROQ_API_KEY` et `ADMIN_CODE` quand il les demande. Laissez `ACCESS_CODE` vide pour un accueil
+   ouvert à tous. La variable `AI_PROVIDER` est réglée sur `groq` par défaut.
 4. Ouvrez l'adresse `https://lpelia-accueil-xxxx.onrender.com`.
 
 Le `Dockerfile` fonctionne aussi sur Railway, Fly.io, Google Cloud Run ou un VPS : définissez les mêmes variables.
@@ -66,7 +68,10 @@ Au redémarrage, l'assistant recharge ce fichier. Si vous avez un hébergement a
 
 | Variable | Rôle | Défaut |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Votre clé API (obligatoire) | n/a |
+| `GROQ_API_KEY` | Clé API Groq (obligatoire si `AI_PROVIDER=groq`) | n/a |
+| `AI_PROVIDER` | Fournisseur IA : `groq` ou `anthropic` | `groq` |
+| `GROQ_MODEL` | Modèle Groq | `llama-3.3-70b-versatile` |
+| `ANTHROPIC_API_KEY` | Clé Claude (si `AI_PROVIDER=anthropic`) | n/a |
 | `ADMIN_CODE` | Code de la page `/admin`. Sans lui, `/admin` est fermée | vide |
 | `ACCESS_CODE` | Code demandé aux visiteurs. Vide = accueil ouvert à tous | vide |
 | `MAX_DAILY_QUESTIONS` | Plafond de questions par jour pour tout le site | `500` |
