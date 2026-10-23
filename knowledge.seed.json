@@ -1,0 +1,16 @@
+{
+  "assistant_name": "LPELIA Accueil",
+  "school_name": "",
+  "welcome": "Bonjour, je suis LPELIA Accueil. Posez-moi vos questions sur l'école et les filières.",
+  "general": "",
+  "programs": "",
+  "admissions": "",
+  "contact": "",
+  "tone": "",
+  "suggestions": [
+    "Quelles filières proposez-vous ?",
+    "Comment s'inscrire ?",
+    "Quels sont les frais de scolarité ?"
+  ],
+  "faq": []
+}

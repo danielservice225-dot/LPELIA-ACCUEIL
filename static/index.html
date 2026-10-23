@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04050B">
+<title>LPELIA Accueil</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #04050B; --fg: #EEF0FA; --muted: #8A90AD;
+  --glass: rgba(255,255,255,0.06); --glass-line: rgba(255,255,255,0.14);
+  --glow: #7C6BFF; --alert: #FF8C7A;
+  --font-display: "Sora", "Trebuchet MS", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-display); font-size: 16px; line-height: 1.55; font-weight: 300;
+  padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 50% 38%, var(--wash, rgba(124,107,255,0.16)), transparent 70%),
+    radial-gradient(120% 60% at 50% 120%, rgba(255,255,255,0.04), transparent 60%);
+  transition: background 1s ease;
+}
+.app { position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brand { font-weight: 600; letter-spacing: 0.02em; font-size: 0.95rem; }
+.status { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.status i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot, #5d6384); box-shadow: 0 0 10px var(--dot, transparent); transition: background .6s, box-shadow .6s; }
+.ghost { font: inherit; font-size: 0.78rem; color: var(--muted); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.ghost:hover { color: var(--fg); }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+
+.stage { flex: 0 0 auto; display: grid; place-items: center; padding: 4px 0; }
+.aura-btn { border: 0; background: none; padding: 0; cursor: pointer; width: min(70vw, 42vh, 340px); aspect-ratio: 1; border-radius: 50%; -webkit-tap-highlight-color: transparent; }
+canvas { width: 100%; height: 100%; display: block; filter: saturate(1.25); }
+
+.caps { flex: 1 1 auto; min-height: 0; overflow-y: auto; text-align: center; display: flex; flex-direction: column; gap: 10px; padding: 4px 6px; }
+.caps > :first-child { margin-top: auto; }
+.caps > :last-child { margin-bottom: auto; }
+.cap-user { margin: 0; color: var(--muted); font-size: 0.92rem; overflow-wrap: anywhere; }
+.cap-ai { margin: 0; font-size: 1.12rem; line-height: 1.5; font-weight: 400; overflow-wrap: anywhere; white-space: pre-wrap; }
+.cap-hint { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.cap-hint.err { color: var(--alert); }
+.replay { align-self: center; font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.sugs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sugs button { font: inherit; font-size: 0.82rem; color: var(--fg); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.sugs button:hover { border-color: var(--glow); }
+
+.overlay { position: fixed; inset: 0; z-index: 5; background: rgba(4,5,11,0.94); backdrop-filter: blur(14px); padding: max(60px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.overlay[hidden] { display: none; }
+.overlay .inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.overlay .close { position: fixed; top: max(14px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+.hmsg { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hmsg .who { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.hmsg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hmsg.user p { color: var(--muted); }
+.hmsg.ai { padding-left: 12px; border-left: 2px solid var(--glow); }
+.gate { display: flex; flex-direction: column; gap: 12px; align-items: stretch; margin-top: 12vh; }
+.gate h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+.gate p { margin: 0; color: var(--muted); }
+.gate input { font: inherit; color: var(--fg); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 14px; padding: 12px 16px; min-width: 0; }
+.gate button { font: inherit; font-weight: 600; background: var(--fg); color: var(--bg); border: 0; border-radius: 14px; padding: 12px 16px; cursor: pointer; }
+
+.dock { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; }
+form { display: flex; gap: 8px; align-items: flex-end; background: var(--glass); border: 1px solid var(--glass-line); border-radius: 26px; padding: 6px 6px 6px 18px; backdrop-filter: blur(10px); }
+textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 16px; color: var(--fg); background: none; border: 0; padding: 9px 0; max-height: 120px; }
+textarea::placeholder { color: var(--muted); }
+textarea:focus-visible { outline: none; }
+form:focus-within { border-color: var(--glow); }
+.send { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; background: var(--fg); color: var(--bg); display: grid; place-items: center; }
+.send:disabled { opacity: .35; cursor: default; }
+.send svg { width: 18px; height: 18px; }
+.tools { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between; color: var(--muted); font-size: 0.8rem; }
+.tools label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.tools input { accent-color: var(--glow); width: 16px; height: 16px; }
+.link { font: inherit; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.link:hover { color: var(--fg); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <span class="brand" id="brand">LPELIA Accueil</span>
+    <span class="status" id="status" aria-live="polite"><i></i><span id="statusTxt">Prêt</span></span>
+    <button class="ghost" id="openHist" type="button">Historique</button>
+  </header>
+
+  <section class="stage">
+    <button class="aura-btn" id="orb" type="button" aria-label="Parler"><canvas id="cv" aria-hidden="true"></canvas></button>
+  </section>
+
+  <section class="caps" id="caps" aria-live="polite"></section>
+
+  <div class="dock">
+    <form id="form">
+      <textarea id="q" rows="1" placeholder="Parlez, ou écrivez ici" aria-label="Votre question"></textarea>
+      <button class="send" id="send" type="submit" aria-label="Envoyer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </form>
+    <div class="tools">
+      <label for="auto"><input type="checkbox" id="auto" checked> Voix activée</label>
+      <span><button class="link" id="testSound" type="button">Tester le son</button> · <button class="link" id="stop" type="button">Couper la voix</button> ·<button class="link" id="reset" type="button">Nouvelle conversation</button></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="history" hidden>
+  <button class="ghost close" id="closeHist" type="button">Fermer</button>
+  <div class="inner" id="hlist"></div>
+</div>
+
+<div class="overlay" id="gate" hidden>
+  <form class="gate" id="gateForm" style="background:none;border:0;padding:0;backdrop-filter:none">
+    <h2>Code d'accès</h2>
+    <p>Cet assistant est protégé. Saisissez le code pour continuer.</p>
+    <input id="code" type="password" autocomplete="current-password" placeholder="Code" aria-label="Code d'accès">
+    <p id="gateErr" style="color:var(--alert)" hidden>Code incorrect.</p>
+    <button type="submit">Entrer</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var orb = $("orb"), caps = $("caps"), q = $("q"), send = $("send"), auto = $("auto");
+  var statusTxt = $("statusTxt"), statusBox = $("status");
+  var hlist = $("hlist"), hist = $("history");
+  var history = [], busy = false, abortCtl = null, code = "";
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, listening = false, micBlocked = false;
+  var synth = window.speechSynthesis || null;
+  var state = "idle";
+  var speakToken = 0, spoken = 0, ended = 0, streamDone = true, buf = "";
+  var info = {
+    assistant_name: "LPELIA Accueil",
+    welcome: "Bonjour, je suis LPELIA Accueil. Posez-moi vos questions sur l'école et les filières.",
+    suggestions: ["Quelles filières proposez-vous ?", "Comment s'inscrire ?", "Quels sont les frais de scolarité ?"]
+  };
+
+  try { code = sessionStorage.getItem("vc_code") || ""; } catch (e) {}
+
+  /* ---------- Aura (canvas) ---------- */
+  var cv = $("cv"), ctx = cv.getContext("2d");
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var PAL = {
+    idle:      [[124,107,255],[70,140,255],[160,90,255],[60,200,255],[110,80,230]],
+    listening: [[40,230,210],[60,170,255],[90,255,190],[30,140,255],[120,230,255]],
+    thinking:  [[255,90,200],[150,90,255],[255,150,120],[110,110,255],[255,70,150]],
+    speaking:  [[255,170,80],[255,90,160],[255,210,110],[190,90,255],[255,120,90]]
+  };
+  var WASH = { idle: "rgba(124,107,255,0.16)", listening: "rgba(40,220,210,0.17)", thinking: "rgba(255,90,200,0.16)", speaking: "rgba(255,150,90,0.17)" };
+  var DOT = { idle: "#5d6384", listening: "#3ee6d2", thinking: "#ff6ac8", speaking: "#ffae5a" };
+  var cur = PAL.idle.map(function (c) { return c.slice(); });
+  var level = 0.1, bump = 0, spin = 0, last = 0, W = 0;
+  var BLOBS = [0, 1, 2, 3, 4].map(function (i) { return { ph: i * 1.7, sp: 0.5 + i * 0.13, rr: 0.18 + i * 0.045, sz: 0.5 - i * 0.03 }; });
+
+  function resize() {
+    var r = cv.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(200, Math.round(r.width * d)); cv.width = W; cv.height = W;
+  }
+  function frame(ts) {
+    var dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts;
+    var tgt, speed;
+    var n = Math.sin(ts / 170) * 0.5 + Math.sin(ts / 97 + 1.3) * 0.3 + Math.sin(ts / 53) * 0.2;
+    if (state === "listening") { tgt = 0.38 + Math.max(0, n) * 0.5 + bump; speed = 1.5; }
+    else if (state === "speaking") { tgt = 0.3 + Math.max(0, n) * 0.45 + bump; speed = 1.2; }
+    else if (state === "thinking") { tgt = 0.5 + Math.sin(ts / 260) * 0.12; speed = 3.2; }
+    else { tgt = 0.12 + Math.sin(ts / 1400) * 0.05; speed = 0.5; }
+    if (reduce) { speed *= 0.2; tgt = 0.25; }
+    bump *= Math.pow(0.02, dt);
+    level += (tgt - level) * Math.min(1, dt * 7);
+    spin += dt * speed;
+    var pal = PAL[state];
+    for (var i = 0; i < 5; i++) for (var k = 0; k < 3; k++) cur[i][k] += (pal[i][k] - cur[i][k]) * Math.min(1, dt * 2.5);
+
+    var c = W / 2, R = W * 0.5;
+    ctx.clearRect(0, 0, W, W);
+    ctx.globalCompositeOperation = "lighter";
+    for (var b = 0; b < 5; b++) {
+      var o = BLOBS[b], a = spin * o.sp + o.ph;
+      var off = R * (o.rr + level * 0.16);
+      var x = c + Math.cos(a) * off, y = c + Math.sin(a * 1.13) * off;
+      var rad = R * (o.sz + level * 0.3);
+      var col = cur[b], rgb = Math.round(col[0]) + "," + Math.round(col[1]) + "," + Math.round(col[2]);
+      var g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+      g.addColorStop(0, "rgba(" + rgb + ",0.85)");
+      g.addColorStop(0.55, "rgba(" + rgb + ",0.28)");
+      g.addColorStop(1, "rgba(" + rgb + ",0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+    }
+    var core = ctx.createRadialGradient(c, c, 0, c, c, R * (0.34 + level * 0.14));
+    core.addColorStop(0, "rgba(255,255,255," + (0.55 + level * 0.3) + ")");
+    core.addColorStop(0.5, "rgba(255,255,255,0.12)");
+    core.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = core; ctx.fillRect(0, 0, W, W);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.lineWidth = Math.max(1, W / 260);
+    ctx.strokeStyle = "rgba(255,255,255," + (0.1 + level * 0.25) + ")";
+    ctx.beginPath(); ctx.arc(c, c, R * (0.5 + level * 0.1), 0, 6.2832); ctx.stroke();
+    requestAnimationFrame(frame);
+  }
+  resize(); window.addEventListener("resize", resize);
+  requestAnimationFrame(frame);
+
+  /* ---------- État ---------- */
+  var LABELS = { idle: "Prêt", listening: "J'écoute", thinking: "Je réfléchis", speaking: "Je parle" };
+  function setState(s) {
+    state = s; statusTxt.textContent = LABELS[s];
+    document.body.style.setProperty("--wash", WASH[s]);
+    statusBox.style.setProperty("--dot", DOT[s]);
+    orb.setAttribute("aria-label", s === "listening" ? "Arrêter l'écoute" : s === "speaking" ? "Couper la voix" : "Parler");
+  }
+  setState("idle");
+
+  /* ---------- Sous-titres ---------- */
+  var capHint = null;
+  function clearCaps() { caps.innerHTML = ""; capHint = null; }
+  function showHint(t, err) {
+    if (!capHint || !capHint.isConnected) { capHint = document.createElement("p"); caps.appendChild(capHint); }
+    capHint.className = "cap-hint" + (err ? " err" : ""); capHint.textContent = t;
+  }
+  function renderEmpty() {
+    clearCaps();
+    showHint(info.welcome + (SR ? " Touchez l'aura pour parler." : " Écrivez votre question ci-dessous."));
+    var rp = document.createElement("button"); rp.type = "button"; rp.className = "replay"; rp.textContent = "Écouter l'accueil";
+    rp.addEventListener("click", function () { unlockTTS(); speakAll(info.welcome); });
+    caps.appendChild(rp);
+    var d = document.createElement("div"); d.className = "sugs";
+    info.suggestions.forEach(function (s) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = s;
+      b.addEventListener("click", function () { unlockTTS(); ask(s); }); d.appendChild(b);
+    });
+    caps.appendChild(d);
+  }
+  function addHist(role, text) {
+    var m = document.createElement("div"); m.className = "hmsg " + role;
+    var w = document.createElement("span"); w.className = "who"; w.textContent = role === "user" ? "Vous" : "Claude";
+    var p = document.createElement("p"); p.textContent = text;
+    m.appendChild(w); m.appendChild(p); hlist.appendChild(m);
+  }
+
+  /* ---------- Voix de sortie (phrase par phrase, pendant le streaming) ---------- */
+  function clean(t) { return t.replace(/[*_#`>~]+/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\s+/g, " ").trim(); }
+  function pickVoice() {
+    if (!synth) return null;
+    var vs = synth.getVoices();
+    return vs.find(function (v) { return /^fr(-|_)FR/i.test(v.lang); }) || vs.find(function (v) { return /^fr/i.test(v.lang); }) || null;
+  }
+  /* iOS et certains Android n'autorisent la voix qu'après un geste de l'utilisateur. */
+  function unlockTTS() {
+    if (!synth || !window.SpeechSynthesisUtterance) return;
+    try { var u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch (e) {}
+  }
+  function maybeIdle() { if (streamDone && ended >= spoken && state === "speaking") setState("idle"); }
+  function queueSpeak(s) {
+    s = clean(s);
+    if (!s || !synth || !window.SpeechSynthesisUtterance) return;
+    var voice = pickVoice();
+    var u = new SpeechSynthesisUtterance(s);
+    u.lang = voice ? voice.lang : "fr-FR"; if (voice) u.voice = voice; u.rate = 1.02;
+    u.onboundary = function () { bump = Math.min(0.5, bump + 0.35); };
+    u.onend = u.onerror = function () { ended++; maybeIdle(); };
+    spoken++;
+    if (state !== "listening") setState("speaking");
+    synth.speak(u);
+  }
+  function flushSentences(final) {
+    var m;
+    while ((m = buf.search(/[.!?…]\s|\n/)) >= 0) { queueSpeak(buf.slice(0, m + 1)); buf = buf.slice(m + 1); }
+    if (final && buf.trim()) { queueSpeak(buf); buf = ""; }
+  }
+  function speakAll(text) {
+    if (!synth || !window.SpeechSynthesisUtterance) { showHint("La lecture à voix haute n'est pas disponible sur cet appareil.", true); return; }
+    speakToken++; synth.cancel(); spoken = 0; ended = 0; streamDone = true; buf = text;
+    flushSentences(true);
+    if (!spoken) setState("idle");
+  }
+  function stopSpeaking() {
+    speakToken++; buf = "";
+    if (synth) synth.cancel();
+    if (state === "speaking") setState("idle");
+  }
+
+  /* ---------- Code d'accès ---------- */
+  function openGate(err) { $("gate").hidden = false; $("gateErr").hidden = !err; setTimeout(function () { $("code").focus(); }, 50); }
+  $("gateForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var c = $("code").value.trim(); if (!c) return;
+    fetch("/api/check", { method: "POST", headers: { "X-Access-Code": c } }).then(function (r) {
+      if (r.ok) { code = c; try { sessionStorage.setItem("vc_code", c); } catch (x) {} $("gate").hidden = true; $("gateErr").hidden = true; $("code").value = ""; }
+      else $("gateErr").hidden = false;
+    }).catch(function () { showHint("Le serveur est injoignable.", true); });
+  });
+  fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) {
+    if (c.assistant_name) info.assistant_name = c.assistant_name;
+    if (c.welcome) info.welcome = c.welcome;
+    if (c.suggestions && c.suggestions.length) info.suggestions = c.suggestions;
+    $("brand").textContent = info.assistant_name; document.title = info.assistant_name;
+    if (!history.length && !busy && state === "idle") renderEmpty();
+    if (c.needs_code && !code) openGate(false);
+  }).catch(function () {});
+
+  /* ---------- Question à Claude (streaming) ---------- */
+  var ERR = {
+    auth: "Code d'accès requis.",
+    rate: "Trop de questions d'un coup. Patientez un instant.",
+    daily: "L'assistant a atteint sa limite de questions pour aujourd'hui. Réessayez demain ou contactez l'école.",
+    key: "Le serveur n'est pas configuré (clé API manquante).",
+    server_auth: "La clé API du serveur est refusée. Vérifiez-la chez votre hébergeur.",
+    overloaded: "Claude est très sollicité. Réessayez dans un instant.",
+    other: "La réponse a échoué. Réessayez.",
+    network: "Le serveur est injoignable. Vérifiez votre connexion."
+  };
+  function fail(c) { var e = new Error(c); e.code = c; return e; }
+
+  function ask(text) {
+    text = (text || "").trim();
+    if (!text || busy) return;
+    stopSpeaking(); stopListening();
+    busy = true; send.disabled = true; q.value = ""; autosize();
+    clearCaps();
+    var cu = document.createElement("p"); cu.className = "cap-user"; cu.textContent = text; caps.appendChild(cu);
+    var ca = document.createElement("p"); ca.className = "cap-ai"; caps.appendChild(ca);
+    history.push({ role: "user", content: text }); addHist("user", text);
+    setState("thinking");
+    abortCtl = new AbortController();
+    var token = ++speakToken, full = "", sbuf = "";
+    spoken = 0; ended = 0; streamDone = false; buf = "";
+
+    function onEvent(ev) {
+      if (ev.error) throw fail(ev.error);
+      if (ev.t) {
+        full += ev.t; ca.textContent = full; caps.scrollTop = caps.scrollHeight;
+        if (auto.checked && token === speakToken) { buf += ev.t; flushSentences(false); }
+      }
+    }
+
+    fetch("/api/chat", {
+      method: "POST", signal: abortCtl.signal,
+      headers: { "Content-Type": "application/json", "X-Access-Code": code },
+      body: JSON.stringify({ messages: history.slice(-20) })
+    }).then(function (res) {
+      if (res.status === 401) { code = ""; try { sessionStorage.removeItem("vc_code"); } catch (e) {} openGate(true); throw fail("auth"); }
+      if (res.status === 429) return res.json().catch(function () { return {}; }).then(function (d) { throw fail(d.code === "daily" ? "daily" : "rate"); });
+      if (res.status === 503) throw fail("key");
+      if (!res.ok || !res.body) throw fail("other");
+      var reader = res.body.getReader(), dec = new TextDecoder();
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          sbuf += dec.decode(r.value, { stream: true });
+          var i;
+          while ((i = sbuf.indexOf("\n\n")) >= 0) {
+            var line = sbuf.slice(0, i); sbuf = sbuf.slice(i + 2);
+            if (line.indexOf("data: ") === 0) onEvent(JSON.parse(line.slice(6)));
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).then(function () {
+      full = full.trim();
+      if (!full) throw fail("other");
+      ca.textContent = full;
+      history.push({ role: "assistant", content: full }); addHist("ai", full);
+      var rb = document.createElement("button"); rb.type = "button"; rb.className = "replay"; rb.textContent = "Réécouter";
+      rb.addEventListener("click", function () { speakAll(full); }); caps.appendChild(rb);
+      if (auto.checked && token === speakToken) flushSentences(true);
+      streamDone = true;
+      if (!spoken) setState("idle"); else maybeIdle();
+    }).catch(function (err) {
+      history.pop(); if (hlist.lastChild) hlist.removeChild(hlist.lastChild);
+      stopSpeaking(); streamDone = true; setState("idle");
+      if (err && err.name === "AbortError") return;
+      clearCaps();
+      var c = err && err.code ? err.code : "network";
+      showHint(ERR[c] || ERR.other, true);
+    }).then(function () { busy = false; send.disabled = false; abortCtl = null; });
+  }
+
+  /* ---------- Micro ---------- */
+  function startListening() {
+    if (!window.isSecureContext) { showHint("Le micro exige une adresse sécurisée (https).", true); q.focus(); return; }
+    if (!SR || micBlocked) {
+      q.focus();
+      showHint(micBlocked ? "Micro refusé. Autorisez-le dans les réglages du navigateur pour ce site, ou écrivez votre question."
+                          : "La dictée n'est pas prise en charge par ce navigateur (essayez Chrome, Edge ou Safari). Écrivez votre question.", true);
+      return;
+    }
+    stopSpeaking();
+    rec = new SR(); rec.lang = "fr-FR"; rec.interimResults = true; rec.continuous = false;
+    var finalText = "", got = false;
+    rec.onstart = function () { listening = true; setState("listening"); clearCaps(); showHint("Je vous écoute…"); };
+    rec.onresult = function (e) {
+      var t = "";
+      for (var i = 0; i < e.results.length; i++) { t += e.results[i][0].transcript; if (e.results[i].isFinal) finalText = t; }
+      got = true; bump = Math.min(0.6, bump + 0.3); q.value = t; autosize(); showHint(t);
+    };
+    rec.onerror = function (e) {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { micBlocked = true; showHint("Micro refusé. Autorisez-le dans les réglages du navigateur pour ce site, ou écrivez votre question.", true); }
+      else if (e.error === "no-speech") showHint("Je n'ai rien entendu. Touchez l'aura et réessayez.", true);
+      else if (e.error === "network") showHint("La dictée a besoin d'internet. Vérifiez votre connexion.", true);
+      else if (e.error !== "aborted") showHint("L'écoute a échoué. Réessayez ou écrivez votre question.", true);
+    };
+    rec.onend = function () {
+      listening = false;
+      if (state === "listening") setState("idle");
+      var t = (finalText || q.value || "").trim();
+      if (got && t) ask(t);
+    };
+    try { rec.start(); } catch (e) { showHint("Impossible de démarrer l'écoute.", true); }
+  }
+  function stopListening() { if (rec && listening) { try { rec.stop(); } catch (e) {} } }
+
+  orb.addEventListener("click", function () {
+    unlockTTS();
+    if (state === "speaking") return stopSpeaking();
+    if (state === "thinking") return;
+    if (listening) return stopListening();
+    startListening();
+  });
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); unlockTTS(); ask(q.value); });
+  q.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); unlockTTS(); ask(q.value); } });
+  function autosize() { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 120) + "px"; }
+  q.addEventListener("input", autosize);
+  $("stop").addEventListener("click", stopSpeaking);
+  $("testSound").addEventListener("click", function () {
+    unlockTTS();
+    speakAll("Bonjour, je suis " + info.assistant_name + ". Si vous m'entendez, le son fonctionne.");
+  });
+  $("reset").addEventListener("click", function () {
+    if (abortCtl) abortCtl.abort();
+    stopSpeaking(); stopListening(); history = []; hlist.innerHTML = ""; setState("idle"); renderEmpty();
+  });
+  $("openHist").addEventListener("click", function () {
+    var he = $("hEmpty"); if (he) he.remove();
+    if (!hlist.children.length) { var e = document.createElement("p"); e.className = "cap-hint"; e.id = "hEmpty"; e.textContent = "Aucun échange pour l'instant."; hlist.appendChild(e); }
+    hist.hidden = false;
+  });
+  $("closeHist").addEventListener("click", function () { hist.hidden = true; var he = $("hEmpty"); if (he) he.remove(); });
+  if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = function () {};
+
+  renderEmpty();
+})();
+</script>
+</body>
+</html>

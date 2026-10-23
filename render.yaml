@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: lpelia-accueil
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ADMIN_CODE
+        sync: false
+      - key: ACCESS_CODE
+        sync: false
+      - key: MAX_DAILY_QUESTIONS
+        value: "500"
+      - key: CLAUDE_MODEL
+        value: claude-sonnet-5-5

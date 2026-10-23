@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#04050B">
+<title>Entraîner LPELIA Accueil</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #04050B; --fg: #EEF0FA; --muted: #8A90AD;
+  --glass: rgba(255,255,255,0.06); --glass-line: rgba(255,255,255,0.14);
+  --glow: #7C6BFF; --ok: #3ee6d2; --alert: #FF8C7A;
+  --font-display: "Sora", "Trebuchet MS", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--font-display); font-size: 16px; line-height: 1.55; font-weight: 300;
+  padding: max(18px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(40px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(60% 40% at 50% 0%, rgba(124,107,255,0.18), transparent 70%); }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+p.lead { margin: 6px 0 0; color: var(--muted); }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+a.btn, button.btn { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: 8px 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+a.btn:hover, button.btn:hover { border-color: var(--glow); }
+button.primary { font: inherit; font-weight: 600; background: var(--fg); color: var(--bg); border: 0; border-radius: 12px; padding: 12px 22px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+section.card { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; color: var(--muted); min-width: 0; }
+label b { color: var(--fg); font-weight: 600; font-size: 0.95rem; }
+input, textarea { font: inherit; font-size: 16px; color: var(--fg); background: rgba(0,0,0,0.35); border: 1px solid var(--glass-line); border-radius: 12px; padding: 10px 14px; width: 100%; min-width: 0; }
+textarea { resize: vertical; line-height: 1.5; }
+input:focus, textarea:focus { border-color: var(--glow); }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.qa { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--glass-line); border-radius: 14px; padding: 12px; }
+.qa .head { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.qa .del { font: inherit; font-size: 0.8rem; color: var(--alert); background: none; border: 0; cursor: pointer; text-decoration: underline; padding: 0; }
+.bar { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: rgba(8,10,22,0.92); backdrop-filter: blur(12px); border: 1px solid var(--glass-line); border-radius: 18px; padding: 12px 14px; }
+.msg { font-size: 0.9rem; flex: 1; min-width: 160px; }
+.msg.ok { color: var(--ok); } .msg.err { color: var(--alert); }
+.count { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.login { margin-top: 12vh; display: flex; flex-direction: column; gap: 12px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="login" id="login">
+    <h1>Entraîner LPELIA Accueil</h1>
+    <p class="lead">Espace réservé à l'administration de l'école. Saisissez le code administrateur.</p>
+    <input id="code" type="password" autocomplete="current-password" placeholder="Code administrateur" aria-label="Code administrateur">
+    <p class="hint" id="loginErr" style="color:var(--alert)" hidden></p>
+    <button class="primary" id="loginBtn" type="button">Entrer</button>
+  </div>
+
+  <div id="editor" hidden style="display:flex;flex-direction:column;gap:22px">
+    <div class="top">
+      <div>
+        <h1>Entraîner LPELIA Accueil</h1>
+        <p class="lead">Ce que vous écrivez ici est ce que l'assistant sait de votre école. Il répond uniquement à partir de ces informations.</p>
+      </div>
+      <a class="btn" href="/" target="_blank" rel="noopener">Ouvrir l'assistant</a>
+    </div>
+
+    <section class="card">
+      <h2>Identité</h2>
+      <div class="row2">
+        <label for="assistant_name"><b>Nom de l'assistant</b><input id="assistant_name" maxlength="60"></label>
+        <label for="school_name"><b>Nom de l'école</b><input id="school_name" maxlength="120" placeholder="Ex. nom complet de votre établissement"></label>
+      </div>
+      <label for="welcome"><b>Message d'accueil</b>
+        <textarea id="welcome" rows="2" maxlength="400"></textarea>
+        <span class="hint">Affiché à l'ouverture. Le visiteur peut l'écouter d'un clic.</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Connaissances de l'école</h2>
+      <label for="general"><b>Présentation de l'école</b>
+        <textarea id="general" rows="6" maxlength="20000" placeholder="Histoire, valeurs, localisation, reconnaissance par l'État, vie étudiante, atouts…"></textarea></label>
+      <label for="programs"><b>Filières et formations</b>
+        <textarea id="programs" rows="9" maxlength="20000" placeholder="Pour chaque filière : intitulé, niveau d'entrée, durée, diplôme obtenu, matières, débouchés…"></textarea></label>
+      <label for="admissions"><b>Inscriptions, frais et dates</b>
+        <textarea id="admissions" rows="6" maxlength="10000" placeholder="Conditions d'admission, pièces à fournir, frais de scolarité, dates de rentrée et de clôture, bourses…"></textarea></label>
+      <label for="contact"><b>Contacts et horaires</b>
+        <textarea id="contact" rows="4" maxlength="3000" placeholder="Adresse, téléphone, e-mail, horaires d'ouverture du secrétariat, réseaux sociaux…"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>Questions fréquentes</h2>
+      <p class="hint">Pour les questions auxquelles vous voulez une réponse exacte, mot pour mot. Elles passent avant tout le reste.</p>
+      <div id="faq" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div><button class="btn" id="addQa" type="button">+ Ajouter une question</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Réglages avancés</h2>
+      <label for="suggestions"><b>Questions proposées au visiteur</b>
+        <textarea id="suggestions" rows="4" placeholder="Une question par ligne (8 maximum)"></textarea>
+        <span class="hint">Boutons affichés sous le message d'accueil.</span></label>
+      <label for="tone"><b>Ton souhaité (facultatif)</b>
+        <textarea id="tone" rows="3" maxlength="1500" placeholder="Ex. vouvoyer toujours, ton chaleureux et rassurant, mentionner la journée portes ouvertes quand c'est utile"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>Sauvegarde</h2>
+      <p class="hint">Sur un hébergement gratuit, le disque est effacé à chaque redémarrage. Après chaque grosse mise à jour, cliquez sur « Exporter » et remplacez le fichier <b>knowledge.seed.json</b> de votre projet par celui téléchargé : l'assistant retrouvera tout après un redéploiement.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="exportBtn" type="button">Exporter (knowledge.seed.json)</button>
+        <button class="btn" id="importBtn" type="button">Importer un fichier</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <div class="bar">
+      <button class="primary" id="saveBtn" type="button">Enregistrer</button>
+      <span class="msg" id="msg" role="status" aria-live="polite"></span>
+      <span class="count" id="count"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var FIELDS = ["assistant_name", "school_name", "welcome", "general", "programs", "admissions", "contact", "tone"];
+  var code = "";
+  try { code = sessionStorage.getItem("vc_admin") || ""; } catch (e) {}
+
+  function msg(t, kind) { var m = $("msg"); m.textContent = t || ""; m.className = "msg" + (kind ? " " + kind : ""); }
+  function headers(extra) { var h = { "X-Admin-Code": code }; for (var k in extra) h[k] = extra[k]; return h; }
+
+  function addQa(q, a) {
+    var d = document.createElement("div"); d.className = "qa";
+    var head = document.createElement("div"); head.className = "head";
+    var t = document.createElement("span"); t.textContent = "Question";
+    var del = document.createElement("button"); del.type = "button"; del.className = "del"; del.textContent = "Supprimer";
+    del.addEventListener("click", function () { d.remove(); count(); });
+    head.appendChild(t); head.appendChild(del);
+    var iq = document.createElement("input"); iq.maxLength = 500; iq.placeholder = "Ex. Y a-t-il une bourse pour les meilleurs bacheliers ?"; iq.value = q || ""; iq.setAttribute("aria-label", "Question");
+    var ia = document.createElement("textarea"); ia.rows = 3; ia.maxLength = 3000; ia.placeholder = "La réponse exacte que l'assistant doit donner"; ia.value = a || ""; ia.setAttribute("aria-label", "Réponse");
+    iq.addEventListener("input", count); ia.addEventListener("input", count);
+    d.appendChild(head); d.appendChild(iq); d.appendChild(ia);
+    $("faq").appendChild(d);
+  }
+
+  function collect() {
+    var kb = {};
+    FIELDS.forEach(function (f) { kb[f] = $(f).value; });
+    kb.suggestions = $("suggestions").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 8);
+    kb.faq = [];
+    $("faq").querySelectorAll(".qa").forEach(function (d) {
+      var q = d.querySelector("input").value.trim(), a = d.querySelector("textarea").value.trim();
+      if (q || a) kb.faq.push({ q: q, a: a });
+    });
+    return kb;
+  }
+  function fill(kb) {
+    FIELDS.forEach(function (f) { $(f).value = kb[f] || ""; });
+    $("suggestions").value = (kb.suggestions || []).join("\n");
+    $("faq").innerHTML = "";
+    (kb.faq || []).forEach(function (x) { addQa(x.q, x.a); });
+    count();
+  }
+  function count() {
+    var n = JSON.stringify(collect()).length;
+    $("count").textContent = n.toLocaleString("fr-FR") + " / 80 000 caractères";
+  }
+
+  function login() {
+    var c = $("code").value.trim() || code;
+    if (!c) return;
+    code = c;
+    $("loginBtn").disabled = true;
+    fetch("/api/admin/knowledge", { headers: headers() }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (r) {
+      $("loginBtn").disabled = false;
+      if (!r.ok) { code = ""; try { sessionStorage.removeItem("vc_admin"); } catch (e) {} $("login").hidden = false; $("loginErr").hidden = false; $("loginErr").textContent = r.d.detail || "Connexion impossible."; return; }
+      try { sessionStorage.setItem("vc_admin", code); } catch (e) {}
+      $("login").hidden = true; $("editor").hidden = false; fill(r.d);
+    }).catch(function () {
+      $("loginBtn").disabled = false; $("loginErr").hidden = false; $("loginErr").textContent = "Le serveur est injoignable.";
+    });
+  }
+  $("loginBtn").addEventListener("click", login);
+  $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") login(); });
+  if (code) login();
+
+  $("addQa").addEventListener("click", function () { addQa("", ""); var last = $("faq").lastChild; if (last) last.querySelector("input").focus(); count(); });
+  document.addEventListener("input", function (e) { if (e.target.closest && e.target.closest("#editor")) count(); });
+
+  $("saveBtn").addEventListener("click", function () {
+    var btn = $("saveBtn"); btn.disabled = true; msg("Enregistrement…");
+    fetch("/api/admin/knowledge", { method: "PUT", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify(collect()) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d, s: r.status }; }); })
+      .then(function (r) {
+        btn.disabled = false;
+        if (r.ok) msg("Enregistré. L'assistant utilise déjà ces informations.", "ok");
+        else if (r.s === 422) msg("Un champ est trop long ou invalide. Vérifiez les textes.", "err");
+        else msg(r.d.detail || "L'enregistrement a échoué.", "err");
+      }).catch(function () { btn.disabled = false; msg("Le serveur est injoignable.", "err"); });
+  });
+
+  $("exportBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(collect(), null, 2)], { type: "application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "knowledge.seed.json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    msg("Fichier téléchargé. Remplacez knowledge.seed.json dans votre projet.", "ok");
+  });
+  $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+  $("importFile").addEventListener("change", function () {
+    var f = this.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try { fill(JSON.parse(rd.result)); msg("Fichier chargé. Cliquez sur Enregistrer pour l'appliquer.", "ok"); }
+      catch (e) { msg("Ce fichier n'est pas un fichier de connaissances valide.", "err"); }
+    };
+    rd.readAsText(f); this.value = "";
+  });
+})();
+</script>
+</body>
+</html>
