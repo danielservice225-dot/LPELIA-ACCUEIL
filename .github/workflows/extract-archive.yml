@@ -41,3 +41,5 @@ jobs:
             git commit -m "Extract LPELIA-ACCUEIL application from ZIP"
             git push
           fi
+
+# Extraction workflow ready.
