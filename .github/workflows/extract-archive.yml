@@ -39,6 +39,7 @@ jobs:
             echo "Application files already extracted."
           else
             git commit -m "Extract LPELIA-ACCUEIL application from ZIP"
+            git pull --rebase origin main
             git push
           fi
 
