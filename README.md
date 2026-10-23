@@ -4,15 +4,14 @@ Assistant vocal d'accueil pour l'école : le visiteur parle (ou écrit), l'assis
 est lue à voix haute sur les haut-parleurs de son téléphone, tablette ou ordinateur.
 
 - `app.py` : backend Python (FastAPI). Garde les clés API côté serveur et envoie les réponses en streaming.
-- Le fournisseur par défaut est Groq (llama-3.3-70b-versatile). Anthropic/Claude reste disponible en option.
+- Le fournisseur par défaut est Groq, avec le même modèle par défaut que SethIA (`openai/gpt-oss-120b`). Anthropic/Claude reste disponible en option.
 - `static/index.html` : l'assistant pour les visiteurs.
 - `static/admin.html` : la page d'entraînement, à l'adresse `/admin`.
 - `knowledge.seed.json` : les connaissances de départ (voir « Sauvegarder l'entraînement »).
 
-## 1. Obtenir une clé API
+## 1. Réutiliser la clé Groq déjà utilisée par SethIA
 
-Créez une clé Groq sur https://console.groq.com/keys et ajoutez-la sur Render comme variable secrète `GROQ_API_KEY`.
-La clé reste sur le serveur, jamais dans la page web. Par défaut, LPELIA Accueil utilise Groq (llama-3.3-70b-versatile).
+Aucune nouvelle clé API n’est nécessaire : dans Render, ajoutez à `lpelia-accueil` la même valeur `GROQ_API_KEY` que celle déjà utilisée par le service SethIA. Les variables d’environnement sont propres à chaque service Render, donc il faut recopier la valeur existante (sans la publier dans le code ni dans le chat). Le modèle par défaut est `openai/gpt-oss-120b`, comme dans SethIA.
 Pour utiliser Claude à la place, réglez `AI_PROVIDER=anthropic` et ajoutez `ANTHROPIC_API_KEY` depuis https://console.anthropic.com.
 
 ## 2. Mettre en ligne (nécessaire pour le micro sur téléphone et tablette)
