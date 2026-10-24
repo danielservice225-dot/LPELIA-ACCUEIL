@@ -598,6 +598,29 @@ def sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def local_fallback_answer(question: str, kb: Knowledge) -> str:
+    """Réponse de secours honnête quand aucun modèle distant ne répond."""
+    q = normalize_text(question)
+    if not q:
+        return "Je n'ai pas reçu de question lisible. Pouvez-vous la reformuler ?"
+    if q in {"bonjour", "bonsoir", "salut", "coucou", "hello", "hey"} or q.startswith(("bonjour ", "bonsoir ", "salut ")):
+        return f"Bonjour, je suis {kb.assistant_name or 'LPELIA Accueil'}. Comment puis-je vous aider ?"
+    if q in {"merci", "merci beaucoup", "je te remercie"}:
+        return "Avec plaisir. Je reste à votre disposition pour vous aider."
+    if q in {"qui es tu", "qui etes vous", "comment tu t appelles", "ton nom", "quel est ton nom"}:
+        return f"Je suis {kb.assistant_name or 'LPELIA Accueil'}, l'assistant d'accueil du LPELIA."
+    known = local_school_answer(question, kb)
+    if known:
+        return known
+    if is_broad_overview_question(question):
+        return school_overview_answer(kb, [])
+    return (
+        "Je rencontre actuellement une indisponibilité du moteur de réponse et je ne veux pas vous donner "
+        "une information inventée. Vous pouvez réessayer dans un instant. Pour les questions sur le LPELIA, "
+        "je peux répondre aux informations déjà enregistrées dans la base de connaissances."
+    )
+
+
 # ---------------------------------------------------------------- routes publiques
 
 @app.get("/health")
@@ -664,8 +687,13 @@ async def chat(body: ChatBody, request: Request):
 
     client = get_client()
     if client is None:
-        key_name = "GROQ_API_KEY" if AI_PROVIDER == "groq" else "ANTHROPIC_API_KEY"
-        return JSONResponse({"detail": f"{key_name} manquante sur le serveur."}, status_code=503)
+        async def offline_stream():
+            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+            yield sse({"done": True})
+        return StreamingResponse(
+            offline_stream(), media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
 
     system = add_web_sources(build_system(_kb), web_results)
 
@@ -679,15 +707,12 @@ async def chat(body: ChatBody, request: Request):
                 # ne doit pas interrompre la conversation si un autre est disponible.
                 fallback_env = os.getenv(
                     "GROQ_FALLBACK_MODELS",
-                    os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b,llama-3.3-70b-versatile,llama-3.1-8b-instant")
+                    os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b,llama-3.3-70b-versatile")
                 )
                 candidates = [MODEL]
-                candidates.extend(
-                    item.strip() for item in fallback_env.split(",") if item.strip()
-                )
-                # Toujours garder un modèle léger en dernier recours, même si
-                # GROQ_FALLBACK_MODEL est déjà défini dans les variables Render.
-                candidates.append("llama-3.1-8b-instant")
+                candidates.extend(item.strip() for item in fallback_env.split(",") if item.strip())
+                # Éviter les doublons et le modèle llama-3.1-8b-instant, qui renvoie
+                # actuellement 404 dans les journaux de ce service.
                 models = list(dict.fromkeys(candidates))
 
                 last_error = "overloaded"
@@ -729,6 +754,11 @@ async def chat(body: ChatBody, request: Request):
                             continue
                         yield sse({"error": last_error})
                         return
+                # Tous les modèles ont échoué avant de produire du texte : fournir
+                # une réponse locale plutôt que terminer le flux sans réponse.
+                yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+                yield sse({"done": True})
+                return
             else:
                 async with client.messages.stream(
                     model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=msgs
@@ -738,16 +768,20 @@ async def chat(body: ChatBody, request: Request):
                 yield sse({"done": True})
         except (anthropic.AuthenticationError, openai.AuthenticationError):
             print("AI provider authentication failed; check the provider API key in Render.")
-            yield sse({"error": "server_auth"})
+            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+            yield sse({"done": True})
         except anthropic.RateLimitError:
             print("Anthropic rate limit: status=429")
-            yield sse({"error": "overloaded"})
+            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+            yield sse({"done": True})
         except anthropic.APIStatusError as e:
             print(f"Anthropic API error: status={e.status_code}")
-            yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
+            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+            yield sse({"done": True})
         except (anthropic.APIConnectionError, openai.APIConnectionError) as e:
             print(f"AI provider connection error: {type(e).__name__}")
-            yield sse({"error": "other"})
+            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+            yield sse({"done": True})
 
     return StreamingResponse(
         stream(),
