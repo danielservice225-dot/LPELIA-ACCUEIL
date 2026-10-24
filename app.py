@@ -8,6 +8,8 @@ import json
 import os
 import secrets
 import time
+import re
+import unicodedata
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -138,6 +140,66 @@ def save_kb(kb: Knowledge) -> None:
 
 
 _kb = load_kb()
+
+
+def normalize_text(value: str) -> str:
+    """Normalise les questions pour retrouver les réponses scolaires sans dépendre du modèle IA."""
+    value = unicodedata.normalize("NFKD", value.casefold())
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
+    return " ".join(re.findall(r"[a-z0-9]+", value))
+
+
+def local_school_answer(question: str, kb: Knowledge) -> str | None:
+    """Répond directement aux questions factuelles couvertes par la FAQ validée."""
+    q = normalize_text(question)
+    if not q:
+        return None
+
+    # Intentions explicites : elles évitent qu'un modèle réponde qu'il manque des informations.
+    intents = [
+        (("frais", "scolarite"), ("frais de scolarite", "frais de scolarité")),
+        (("inscrire",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
+        (("inscription",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
+        (("admission",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
+        (("telephone",), ("quel est le numero de telephone du lpelia", "Quel est le numéro de téléphone du LPELIA ?")),
+        (("numero", "contact"), ("quel est le numero de telephone du lpelia", "Quel est le numéro de téléphone du LPELIA ?")),
+        (("email",), ("quelle est l'adresse e-mail du lpelia", "Quelle est l'adresse e-mail du LPELIA ?")),
+        (("mail",), ("quelle est l'adresse e-mail du lpelia", "Quelle est l'adresse e-mail du LPELIA ?")),
+        (("site", "web"), ("quel est le site web du lpelia", "Quel est le site web du LPELIA ?")),
+        (("histoire",), ("quelle est l'histoire du lpelia", "Quelle est l'histoire du LPELIA ?")),
+        (("historique",), ("quelle est l'histoire du lpelia", "Quelle est l'histoire du LPELIA ?")),
+        (("1988",), ("quand le celia a-t-il ete cree", "Quand le CELIA a-t-il été créé ?")),
+        (("cree", "creation", "fonde", "fondation", "origine"), ("quelle est l'histoire du lpelia", "Quelle est l'histoire du LPELIA ?")),
+        (("filiere", "filieres", "formation", "formations"), ("quelles sont les filieres du lpelia", "Quelles sont les filières du LPELIA ?")),
+        (("diplome", "diplomes", "bt", "bts", "sei"), ("quels diplomes prepare le lpelia", "Quels diplômes prépare le LPELIA ?")),
+        (("ou", "situe", "localisation", "treichville", "vge", "fdfp"), ("ou se situe exactement le lpelia", "Où se situe exactement le LPELIA ?")),
+        (("celia", "signifie"), ("que signifie celia", "Que signifie CELIA ?")),
+        (("lpelia", "signifie"), ("que signifie lpelia", "Que signifie LPELIA ?")),
+    ]
+
+    by_question = {normalize_text(item.q): item.a.strip() for item in kb.faq if item.q.strip() and item.a.strip()}
+    for keywords, faq_question in intents:
+        if all(word in q.split() for word in keywords):
+            answer = by_question.get(normalize_text(faq_question[0]))
+            if answer:
+                return answer
+
+    # Recherche de secours sur la FAQ : score lexical volontairement prudent.
+    stop = {"le", "la", "les", "un", "une", "des", "du", "de", "d", "au", "aux", "et", "ou", "est", "sont", "je", "tu", "il", "elle", "on", "nous", "vous", "qui", "que", "quoi", "comment", "quel", "quelle", "quels", "quelles", "pour", "dans", "sur", "avec", "moi", "me", "mon", "ma", "mes"}
+    query_tokens = {word for word in q.split() if len(word) > 2 and word not in stop}
+    best_answer = None
+    best_score = 0.0
+    for item in kb.faq:
+        if not item.q.strip() or not item.a.strip():
+            continue
+        faq_tokens = {word for word in normalize_text(item.q).split() if len(word) > 2 and word not in stop}
+        if not faq_tokens:
+            continue
+        overlap = len(query_tokens & faq_tokens)
+        score = overlap / len(faq_tokens)
+        if overlap >= 2 and score > best_score:
+            best_score, best_answer = score, item.a.strip()
+    return best_answer if best_score >= 0.55 else None
 
 
 def build_system(kb: Knowledge) -> str:
@@ -314,11 +376,6 @@ async def chat(body: ChatBody, request: Request):
     if rate_limited(client_ip(request)):
         return JSONResponse({"detail": "Trop de questions, patientez un instant.", "code": "rate"}, status_code=429)
 
-    client = get_client()
-    if client is None:
-        key_name = "GROQ_API_KEY" if AI_PROVIDER == "groq" else "ANTHROPIC_API_KEY"
-        return JSONResponse({"detail": f"{key_name} manquante sur le serveur."}, status_code=503)
-
     msgs = [m.model_dump() for m in body.messages][-MAX_HISTORY:]
     while msgs and msgs[0]["role"] != "user":
         msgs.pop(0)
@@ -327,6 +384,25 @@ async def chat(body: ChatBody, request: Request):
 
     if daily_exceeded():
         return JSONResponse({"detail": "Limite de questions atteinte pour aujourd'hui.", "code": "daily"}, status_code=429)
+
+    # Réponses locales déterministes pour les faits scolaires connus : elles fonctionnent
+    # même si le fournisseur IA est momentanément indisponible et ne laissent pas le modèle
+    # prétendre qu'aucune information n'est disponible.
+    local_answer = local_school_answer(msgs[-1]["content"], _kb)
+    if local_answer:
+        async def local_stream():
+            yield sse({"t": local_answer})
+            yield sse({"done": True})
+        return StreamingResponse(
+            local_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
+
+    client = get_client()
+    if client is None:
+        key_name = "GROQ_API_KEY" if AI_PROVIDER == "groq" else "ANTHROPIC_API_KEY"
+        return JSONResponse({"detail": f"{key_name} manquante sur le serveur."}, status_code=503)
 
     system = build_system(_kb)
 
