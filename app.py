@@ -79,7 +79,7 @@ class Knowledge(BaseModel):
     programs: str = Field(default="", max_length=20000)
     admissions: str = Field(default="", max_length=10000)
     contact: str = Field(default="", max_length=3000)
-    tone: str = Field(default="", max_length=1500)
+    tone: str = Field(default="", max_length=3000)
     suggestions: list[Short] = Field(default_factory=list, max_length=8)
     faq: list[QA] = Field(default_factory=list, max_length=200)
 
