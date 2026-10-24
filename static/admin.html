@@ -76,7 +76,7 @@ input:focus, textarea:focus { border-color: var(--glow); }
       <h2>Identité</h2>
       <div class="row2">
         <label for="assistant_name"><b>Nom de l'assistant</b><input id="assistant_name" maxlength="60"></label>
-        <label for="school_name"><b>Nom de l'école</b><input id="school_name" maxlength="120" placeholder="Ex. nom complet de votre établissement"></label>
+        <label for="school_name"><b>Nom de l'école</b><input id="school_name" maxlength="250" placeholder="Ex. nom complet de votre établissement"></label>
       </div>
       <label for="welcome"><b>Message d'accueil</b>
         <textarea id="welcome" rows="2" maxlength="400"></textarea>
@@ -208,7 +208,7 @@ input:focus, textarea:focus { border-color: var(--glow); }
         btn.disabled = false;
         if (r.ok) msg("Enregistré. L'assistant utilise déjà ces informations.", "ok");
         else if (r.s === 422) msg("Un champ est trop long ou invalide. Vérifiez les textes.", "err");
-        else msg(r.d.detail || "L'enregistrement a échoué.", "err");
+        else msg(r.d.detail || (r.s >= 500 ? "Erreur du serveur. Gardez cette page ouverte et réessayez dans un instant." : "L'enregistrement a échoué."), "err");
       }).catch(function () { btn.disabled = false; msg("Le serveur est injoignable.", "err"); });
   });
 
