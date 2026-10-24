@@ -9,6 +9,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebSettings
+import android.webkit.CookieManager
 import android.widget.Toast
 
 class MainActivity : Activity() {
@@ -20,6 +22,13 @@ class MainActivity : Activity() {
         webView = WebView(this)
         setContentView(webView)
         webView.settings.javaScriptEnabled = true
+        // Keep the APK aligned with the live website: avoid stale cached HTML/JS.
+        webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+        webView.settings.javaScriptCanOpenWindowsAutomatically = false
+        webView.settings.setSupportMultipleWindows(false)
+        webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
