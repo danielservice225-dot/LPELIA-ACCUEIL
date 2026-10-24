@@ -703,8 +703,10 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
     # par la présentation administrative de l'établissement.
     if any(phrase in q for phrase in (
         "quest ce que electronique", "qu est ce que electronique",
-        "c est quoi electronique", "definition electronique",
-        "explique electronique", "que signifie electronique",
+        "qu est ce que l electronique", "c est quoi electronique",
+        "c est quoi l electronique", "definition electronique",
+        "definition de l electronique", "explique electronique",
+        "explique moi l electronique", "que signifie electronique",
     )):
         return (
             "L’électronique est une branche de la science et de la technologie qui étudie "
