@@ -156,67 +156,18 @@ def normalize_text(value: str) -> str:
 
 
 def is_in_scope(question: str, previous_user_questions: list[str] | None = None) -> bool:
-    """Limite l'assistant au LPELIA et aux domaines électronique/informatique appliquée."""
-    q = normalize_text(question)
-    if not q:
-        return False
-    if q in {"bonjour", "bonsoir", "salut", "coucou", "merci", "merci beaucoup", "au revoir"}:
-        return True
-    if q in {"qui es tu", "qui etes vous", "comment tu t appelles", "ton nom", "quel est ton nom"}:
-        return True
-
-    # Termes de l'école, de la formation et des domaines techniques autorisés.
-    keywords = {
-        "lpelia", "celia", "lycee", "ecole", "etablissement", "eleve", "eleves",
-        "etudiant", "etudiants", "parent", "parents", "professeur", "enseignant",
-        "filiere", "filieres", "formation", "formations", "inscription", "inscrire",
-        "admission", "concours", "diplome", "diplomes", "bt", "bts", "sei",
-        "scolarite", "frais", "secretariat", "administration", "directeur",
-        "historique", "histoire", "adresse", "contact", "horaire", "horaires",
-        "electronique", "electroniques", "informatique", "informatiques",
-        "ordinateur", "ordinateurs", "pc", "ordinateur", "programmation",
-        "programmer", "programme", "code", "coder", "python", "javascript",
-        "typescript", "html", "css", "java", "cpp", "sql", "algorithme",
-        "algorithmes", "logiciel", "logiciels", "application", "applications",
-        "reseau", "reseaux", "internet", "serveur", "serveurs", "api", "base",
-        "donnees", "database", "cybersecurite", "securite", "linux", "windows",
-        "kali", "terminal", "bug", "erreur", "debug", "depannage", "panne",
-        "maintenance", "materiel", "composant", "composants", "circuit",
-        "circuits", "tension", "courant", "resistance", "condensateur",
-        "transistor", "diode", "soudure", "multimetre", "oscilloscope",
-        "capteur", "capteurs", "microcontroleur", "arduino", "esp32",
-        "raspberry", "robot", "robotique", "automatisme", "automatisation",
-        "embarque", "embarques", "wifi", "bluetooth", "electricite",
-        "electron", "electrique", "electriques", "numerique", "numeriques",
-        "binaire", "processeur", "memoire", "stockage", "disque", "ram",
-        "installation", "pilote", "pilotes", "materiel", "logiciel",
-        "intelligence", "artificielle", "ia", "machine", "learning", "groq",
-        "git", "github", "render", "supabase", "flask", "fastapi", "python",
-        "web", "frontend", "backend", "developpement", "developpeur",
-    }
-    words = set(q.split())
-    if words & keywords:
-        return True
-
-    # Les relances brèves (« explique davantage », « et les débouchés ? »)
-    # restent dans le sujet si la question précédente était dans le périmètre.
-    followup = len(words) <= 8 or any(term in q for term in (
-        "explique davantage", "explique plus", "detaille", "pourquoi", "comment ca",
-        "et ensuite", "donne un exemple", "un exemple", "continue", "precise",
-    ))
-    if followup and previous_user_questions:
-        for previous in reversed(previous_user_questions[-3:]):
-            previous_q = normalize_text(previous)
-            if previous_q and set(previous_q.split()) & keywords:
-                return True
-    return False
+    """Accepte toutes les questions utiles, quel que soit le domaine."""
+    # LPELIA-ACCUEIL est polyvalent : ne bloque pas une question parce qu'elle
+    # ne contient pas de mot-clé scolaire, électronique ou informatique.
+    return bool(question and question.strip())
 
 
 OUT_OF_SCOPE_REPLY = (
-    "Je suis LPELIA-ACCUEIL, spécialisé dans le LPELIA, les formations de l'établissement, "
-    "l'électronique et l'informatique appliquée. Je peux vous aider sur ces sujets, mais je ne "
-    "réponds pas aux questions sans rapport avec ce domaine."
+    "Je peux vous aider sur des sujets variés : cours, mathématiques, sciences, "
+    "électronique, informatique, programmation, rédaction, culture générale et questions "
+    "sur le LPELIA. Quelle est votre question ?"
 )
+
 
 
 def local_school_answer(question: str, kb: Knowledge) -> str | None:
