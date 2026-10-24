@@ -77,42 +77,60 @@ class Knowledge(BaseModel):
     faq: list[QA] = Field(default_factory=list, max_length=200)
 
 
+def merge_knowledge(seed: Knowledge, saved: Knowledge) -> Knowledge:
+    """Conserve toujours la base scolaire intégrée, même si un ancien fichier admin existe."""
+    merged = seed.model_dump()
+    saved_data = saved.model_dump()
+
+    # Les sections de connaissances se complètent : un ancien knowledge.json ne doit
+    # jamais masquer les informations du fichier knowledge.seed.json.
+    for key in ("general", "programs", "admissions", "contact"):
+        base_text = str(getattr(seed, key) or "").strip()
+        extra_text = str(getattr(saved, key) or "").strip()
+        if extra_text and extra_text not in base_text:
+            merged[key] = (base_text + "\\n\\n" + extra_text).strip() if base_text else extra_text
+        else:
+            merged[key] = base_text or extra_text
+
+    # Les FAQ sont réunies par question, sans doublons (insensible à la casse).
+    combined_faq = []
+    seen_questions = set()
+    for item in list(seed.faq) + list(saved.faq):
+        question = " ".join(item.q.casefold().split())
+        if question and question not in seen_questions and item.a.strip():
+            combined_faq.append(item.model_dump())
+            seen_questions.add(question)
+    merged["faq"] = combined_faq
+
+    combined_suggestions = []
+    for item in list(seed.suggestions) + list(saved.suggestions):
+        item = item.strip()
+        if item and item not in combined_suggestions:
+            combined_suggestions.append(item)
+    merged["suggestions"] = combined_suggestions[:8]
+
+    # Les paramètres éditables gardent la valeur admin lorsqu'elle est renseignée.
+    for key in ("assistant_name", "school_name", "welcome", "tone"):
+        value = getattr(saved, key)
+        if isinstance(value, str) and value.strip():
+            merged[key] = value
+    return Knowledge.model_validate(merged)
+
+
 def load_kb() -> Knowledge:
-    """Charge les connaissances sauvegardées en complétant les champs vides avec la base initiale.
-    
-    Important sur Render : un ancien knowledge.json peut exister avec des champs vides.
-    La base initiale enrichie doit rester disponible même dans ce cas. Les valeurs déjà
-    renseignées dans knowledge.json gardent la priorité sur les valeurs de départ.
-    """
-    seed = Knowledge()
+    """Charge la base intégrée et la complète avec les données administrateur sauvegardées."""
     try:
-        if SEED_FILE.exists():
-            seed = Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8"))
+        seed = Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8")) if SEED_FILE.exists() else Knowledge()
     except Exception:
         seed = Knowledge()
 
     try:
         if KB_FILE.exists():
             saved = Knowledge.model_validate_json(KB_FILE.read_text(encoding="utf-8"))
-            merged = seed.model_dump()
-            saved_data = saved.model_dump()
-            for key, value in saved_data.items():
-                if key == "faq":
-                    if value:
-                        merged[key] = value
-                elif key == "suggestions":
-                    if value:
-                        merged[key] = value
-                elif isinstance(value, str):
-                    if value.strip():
-                        merged[key] = value
-                elif value:
-                    merged[key] = value
-            return Knowledge.model_validate(merged)
+            return merge_knowledge(seed, saved)
     except Exception:
         pass
     return seed
-
 
 def save_kb(kb: Knowledge) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -371,14 +389,19 @@ async def admin_put(kb: Knowledge, request: Request):
         return JSONResponse(
             {"detail": f"Trop de contenu (maximum {MAX_KB_CHARS} caractères au total)."}, status_code=413
         )
+    # Même une sauvegarde depuis l'interface admin ne doit pas effacer la base intégrée.
+    merged_kb = merge_knowledge(
+        Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8")) if SEED_FILE.exists() else Knowledge(),
+        kb,
+    )
     try:
-        save_kb(kb)
+        save_kb(merged_kb)
     except OSError:
         return JSONResponse(
             {"detail": "Enregistrement impossible sur ce serveur (disque en lecture seule)."}, status_code=500
         )
-    _kb = kb
-    return {"ok": True, "chars": len(kb.model_dump_json())}
+    _kb = merged_kb
+    return {"ok": True, "chars": len(merged_kb.model_dump_json())}
 
 
 @app.get("/admin")
