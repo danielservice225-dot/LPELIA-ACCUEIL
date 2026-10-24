@@ -80,8 +80,6 @@ class Knowledge(BaseModel):
 def merge_knowledge(seed: Knowledge, saved: Knowledge) -> Knowledge:
     """Conserve toujours la base scolaire intégrée, même si un ancien fichier admin existe."""
     merged = seed.model_dump()
-    saved_data = saved.model_dump()
-
     # Les sections de connaissances se complètent : un ancien knowledge.json ne doit
     # jamais masquer les informations du fichier knowledge.seed.json.
     for key in ("general", "programs", "admissions", "contact"):
