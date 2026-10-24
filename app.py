@@ -172,7 +172,6 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
         (("cree", "creation", "fonde", "fondation", "origine"), ("quelle est l'histoire du lpelia", "Quelle est l'histoire du LPELIA ?")),
         (("filiere", "filieres", "formation", "formations"), ("quelles sont les filieres du lpelia", "Quelles sont les filières du LPELIA ?")),
         (("diplome", "diplomes", "bt", "bts", "sei"), ("quels diplomes prepare le lpelia", "Quels diplômes prépare le LPELIA ?")),
-        (("ou", "situe", "localisation", "treichville", "vge", "fdfp", "adresse"), ("ou se situe exactement le lpelia", "Où se situe exactement le LPELIA ?")),
     ]
 
     by_question = {normalize_text(item.q): item.a.strip() for item in kb.faq if item.q.strip() and item.a.strip()}
@@ -183,6 +182,15 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
             return answer
     if ("signifie" in words or "signification" in words or "veut dire" in q) and "lpelia" in words:
         answer = by_question.get(normalize_text("Que signifie LPELIA ?"))
+        if answer:
+            return answer
+
+    if q.startswith("ou ") or any(word in words for word in ("situe", "trouve", "localisation", "treichville", "vge", "fdfp", "adresse", "localise")):
+        answer = by_question.get(normalize_text("Où se situe exactement le LPELIA ?"))
+        if answer:
+            return answer
+    if any(word in words for word in ("presente", "presentation", "decris")) and any(word in words for word in ("lpelia", "celia", "lycee", "ecole")):
+        answer = by_question.get(normalize_text("Présente-moi le LPELIA."))
         if answer:
             return answer
 
