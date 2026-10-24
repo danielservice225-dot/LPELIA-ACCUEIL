@@ -32,6 +32,10 @@ body::before {
 }
 .app { position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.app-header { flex-wrap: wrap; }
+.school-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.school-logo { display: block; width: 42px; height: 53px; flex: 0 0 auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,.22)); }
+.brand { font-weight: 600; letter-spacing: 0.02em; font-size: 0.95rem; }
 .brand { font-weight: 600; letter-spacing: 0.02em; font-size: 0.95rem; }
 .status { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
 .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot, #5d6384); box-shadow: 0 0 10px var(--dot, transparent); transition: background .6s, box-shadow .6s; }
@@ -88,8 +92,21 @@ form:focus-within { border-color: var(--glow); }
 </head>
 <body>
 <div class="app">
-  <header>
-    <span class="brand" id="brand">LPELIA Accueil</span>
+  <header class="app-header">
+    <div class="school-brand" aria-label="METFPA LPELIA">
+      <svg class="school-logo" viewBox="0 0 120 150" role="img" aria-label="Logo METFPA LPELIA">
+        <defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe69a"/><stop offset="1" stop-color="#c58b24"/></linearGradient></defs>
+        <path d="M8 5H112V88Q110 121 60 145Q10 121 8 88Z" fill="#1235bd" stroke="url(#gold)" stroke-width="5"/>
+        <path d="M14 12H106V36H14Z" fill="#f7f5e9"/>
+        <text x="60" y="30" text-anchor="middle" font-size="17" font-weight="900" fill="#1829b6">METFPA</text>
+        <g fill="none" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"><path d="M34 52Q15 68 32 91Q41 101 52 100"/><path d="M86 52Q105 68 88 91Q79 101 68 100"/><path d="M31 67l-7 -2M30 77l-7 1M37 88l-6 4M89 67l7 -2M90 77l7 1M83 88l6 4"/></g>
+        <circle cx="60" cy="70" r="15" fill="url(#gold)"/><circle cx="60" cy="70" r="8" fill="#1235bd"/>
+        <path d="M45 83H75" stroke="url(#gold)" stroke-width="3"/>
+        <text x="60" y="111" text-anchor="middle" font-size="16" font-weight="900" fill="#ffe39a">LPELIA</text>
+        <text x="60" y="124" text-anchor="middle" font-size="5.5" font-weight="700" fill="#fff">ABIDJAN</text>
+      </svg>
+      <span class="brand" id="brand">LPELIA Accueil</span>
+    </div>
     <span class="status" id="status" aria-live="polite"><i></i><span id="statusTxt">Prêt</span></span>
     <button class="ghost" id="openHist" type="button">Historique</button>
   </header>
