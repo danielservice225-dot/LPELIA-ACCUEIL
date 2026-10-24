@@ -312,6 +312,8 @@ class _SearchResultParser(HTMLParser):
         a = dict(attrs)
         classes = a.get("class", "")
         if tag == "a" and "result__a" in classes:
+            if self.current and self.current.get("title", "").strip():
+                self.results.append(self.current)
             self.current = {"title": "", "url": a.get("href", ""), "snippet": ""}
             self.capture = "title"
         elif self.current and "result__snippet" in classes:
@@ -324,9 +326,6 @@ class _SearchResultParser(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "a" and self.current and self.capture == "title":
             self.capture = None
-            if self.current.get("title", "").strip():
-                self.results.append(self.current)
-                self.current = None
 
 
 def _search_lpelia_web_sync(question: str) -> list[dict[str, str]]:
@@ -338,6 +337,8 @@ def _search_lpelia_web_sync(question: str) -> list[dict[str, str]]:
             page = response.read(700_000).decode("utf-8", errors="replace")
         parser = _SearchResultParser()
         parser.feed(page)
+        if parser.current and parser.current.get("title", "").strip():
+            parser.results.append(parser.current)
         results = []
         for item in parser.results:
             link = item.get("url", "").strip()
