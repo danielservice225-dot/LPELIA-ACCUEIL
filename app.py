@@ -235,6 +235,24 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
                     "Sa mission est d'informer, d'orienter et d'accompagner les élèves, les visiteurs et toute personne "
                     "souhaitant obtenir des informations sur l'établissement.")
 
+    # Réponse locale fiable à « pourquoi choisir le LPELIA ? », même si Groq est indisponible.
+    if (
+        ("choisir" in words or "pourquoi" in words or "avantage" in words or "avantages" in words)
+        and ("lpelia" in words or "celia" in words or "lycee" in words or "ecole" in words)
+    ):
+        formations = "Les formations mentionnées dans la base comprennent le BT en Maintenance électronique et le BTS en Systèmes électroniques et informatiques (SEI)"
+        if kb.programs.strip():
+            formations += ", ainsi que les autres formations décrites dans les informations de l'établissement"
+        return (
+            "Choisir le LPELIA peut être pertinent si vous souhaitez vous orienter vers l'électronique "
+            "et l'informatique appliquée. Ces domaines permettent d'apprendre à comprendre les composants "
+            "électroniques, à diagnostiquer des pannes et à travailler avec les ordinateurs, les logiciels "
+            "et les réseaux. " + formations + ". "
+            "Votre choix doit aussi tenir compte de vos intérêts, de votre projet professionnel et des "
+            "conditions d'admission en vigueur. Pour les débouchés précis, les frais et les modalités "
+            "d'inscription, référez-vous aux informations officielles actualisées du LPELIA."
+        )
+
     # Intentions explicites : elles évitent qu'un modèle réponde qu'il manque des informations.
     intents = [
         (("frais", "scolarite"), ("quels sont les frais de scolarite du lpelia", "Quels sont les frais de scolarité du LPELIA ?")),
