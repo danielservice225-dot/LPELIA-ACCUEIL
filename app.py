@@ -172,14 +172,22 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
         (("cree", "creation", "fonde", "fondation", "origine"), ("quelle est l'histoire du lpelia", "Quelle est l'histoire du LPELIA ?")),
         (("filiere", "filieres", "formation", "formations"), ("quelles sont les filieres du lpelia", "Quelles sont les filières du LPELIA ?")),
         (("diplome", "diplomes", "bt", "bts", "sei"), ("quels diplomes prepare le lpelia", "Quels diplômes prépare le LPELIA ?")),
-        (("ou", "situe", "localisation", "treichville", "vge", "fdfp"), ("ou se situe exactement le lpelia", "Où se situe exactement le LPELIA ?")),
-        (("celia", "signifie"), ("que signifie celia", "Que signifie CELIA ?")),
-        (("lpelia", "signifie"), ("que signifie lpelia", "Que signifie LPELIA ?")),
+        (("ou", "situe", "localisation", "treichville", "vge", "fdfp", "adresse"), ("ou se situe exactement le lpelia", "Où se situe exactement le LPELIA ?")),
     ]
 
     by_question = {normalize_text(item.q): item.a.strip() for item in kb.faq if item.q.strip() and item.a.strip()}
+    words = set(q.split())
+    if ("signifie" in words or "signification" in words or "veut dire" in q) and "celia" in words:
+        answer = by_question.get(normalize_text("Que signifie CELIA ?"))
+        if answer:
+            return answer
+    if ("signifie" in words or "signification" in words or "veut dire" in q) and "lpelia" in words:
+        answer = by_question.get(normalize_text("Que signifie LPELIA ?"))
+        if answer:
+            return answer
+
     for keywords, faq_question in intents:
-        if all(word in q.split() for word in keywords):
+        if any(word in words for word in keywords):
             answer = by_question.get(normalize_text(faq_question[0]))
             if answer:
                 return answer
