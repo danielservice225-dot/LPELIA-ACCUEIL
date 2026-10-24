@@ -685,6 +685,9 @@ async def chat(body: ChatBody, request: Request):
                 candidates.extend(
                     item.strip() for item in fallback_env.split(",") if item.strip()
                 )
+                # Toujours garder un modèle léger en dernier recours, même si
+                # GROQ_FALLBACK_MODEL est déjà défini dans les variables Render.
+                candidates.append("llama-3.1-8b-instant")
                 models = list(dict.fromkeys(candidates))
 
                 last_error = "overloaded"
