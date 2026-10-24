@@ -45,8 +45,9 @@ MODEL = GROQ_MODEL if AI_PROVIDER == "groq" else CLAUDE_MODEL
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "600"))
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
 ADMIN_CODE = os.getenv("ADMIN_CODE", "").strip()
-RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "12"))
-MAX_DAILY_QUESTIONS = int(os.getenv("MAX_DAILY_QUESTIONS", "500"))
+# Limites plus souples par défaut ; elles restent configurables sur Render.
+RATE_LIMIT_PER_MIN = max(1, int(os.getenv("RATE_LIMIT_PER_MIN", "30")))
+MAX_DAILY_QUESTIONS = max(1, int(os.getenv("MAX_DAILY_QUESTIONS", "2000")))
 MAX_HISTORY = 20
 MAX_CHARS = 4000
 MAX_KB_CHARS = 80000
@@ -674,11 +675,19 @@ async def chat(body: ChatBody, request: Request):
                 groq_messages = [{"role": "system", "content": system}] + msgs
                 # Si le modèle principal atteint sa limite, essayer un modèle Groq
                 # de secours avec la même clé. La clé ne quitte jamais le serveur.
-                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b").strip()
-                models = [MODEL]
-                if fallback_model and fallback_model != MODEL:
-                    models.append(fallback_model)
+                # Plusieurs modèles de secours : la panne ou la limite d'un modèle
+                # ne doit pas interrompre la conversation si un autre est disponible.
+                fallback_env = os.getenv(
+                    "GROQ_FALLBACK_MODELS",
+                    os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b,llama-3.1-8b-instant")
+                )
+                candidates = [MODEL]
+                candidates.extend(
+                    item.strip() for item in fallback_env.split(",") if item.strip()
+                )
+                models = list(dict.fromkeys(candidates))
 
+                last_error = "overloaded"
                 for index, model_name in enumerate(models):
                     emitted = False
                     try:
@@ -694,17 +703,19 @@ async def chat(body: ChatBody, request: Request):
                                     yield sse({"t": piece})
                         yield sse({"done": True})
                         return
-                    except openai.RateLimitError as e:
+                    except openai.RateLimitError:
                         print(f"Groq rate limit: model={model_name}, status=429")
+                        last_error = "overloaded"
                         if not emitted and index + 1 < len(models):
                             continue
-                        yield sse({"error": "overloaded"})
+                        yield sse({"error": last_error})
                         return
                     except openai.APIStatusError as e:
                         print(f"Groq API error: model={model_name}, status={e.status_code}")
-                        if e.status_code in (429, 529) and not emitted and index + 1 < len(models):
+                        if e.status_code in (429, 404, 408, 409, 422, 500, 502, 503, 529) and not emitted and index + 1 < len(models):
+                            last_error = "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"
                             continue
-                        yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
+                        yield sse({"error": "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"})
                         return
             else:
                 async with client.messages.stream(
