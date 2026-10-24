@@ -79,12 +79,16 @@ class MainActivity : Activity() {
 
             // Prefer French. If French voice data is not installed, try the device language
             // instead of reporting that speech is unavailable immediately.
-            val frenchResult = engine.setLanguage(Locale.FRANCE)
+            val franceResult = engine.setLanguage(Locale.FRANCE)
+            val frenchResult = if (franceResult == TextToSpeech.LANG_MISSING_DATA ||
+                franceResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                engine.setLanguage(Locale.FRENCH)
+            } else {
+                franceResult
+            }
             val result = if (frenchResult == TextToSpeech.LANG_MISSING_DATA ||
                 frenchResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                val fallback = Locale.getDefault()
-                if (fallback.language == "fr") TextToSpeech.LANG_MISSING_DATA
-                else engine.setLanguage(fallback)
+                engine.setLanguage(Locale.getDefault())
             } else {
                 frenchResult
             }
