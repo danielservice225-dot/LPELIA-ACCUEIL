@@ -237,6 +237,19 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
 
     by_question = {normalize_text(item.q): item.a.strip() for item in kb.faq if item.q.strip() and item.a.strip()}
     words = set(q.split())
+    # Les réponses FAQ directes concernent uniquement l'établissement.
+    # Une question technique (ex. téléphone, circuit, programmation) doit être
+    # expliquée par le modèle, pas remplacée par une réponse administrative.
+    school_context = bool(words & {
+        "lpelia", "celia", "lycee", "ecole", "etablissement", "scolaire",
+        "scolaires", "filiere", "filieres", "formation", "formations",
+        "inscription", "inscrire", "admission", "concours", "diplome",
+        "diplomes", "scolarite", "secretariat", "administration", "direction",
+        "professeur", "enseignant", "eleve", "eleves", "etudiant", "etudiants",
+        "historique", "histoire", "frais",
+    })
+    if not school_context:
+        return None
     if ("signifie" in words or "signification" in words or "veut dire" in q) and "celia" in words:
         answer = by_question.get(normalize_text("Que signifie CELIA ?"))
         if answer:
