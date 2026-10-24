@@ -38,7 +38,7 @@ SEED_FILE = BASE / "knowledge.seed.json"
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower() or "groq"
 if AI_PROVIDER not in {"groq", "anthropic"}:
     AI_PROVIDER = "groq"
-DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "").strip() or DEFAULT_GROQ_MODEL
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
 MODEL = GROQ_MODEL if AI_PROVIDER == "groq" else CLAUDE_MODEL
@@ -674,7 +674,7 @@ async def chat(body: ChatBody, request: Request):
                 groq_messages = [{"role": "system", "content": system}] + msgs
                 # Si le modèle principal atteint sa limite, essayer un modèle Groq
                 # de secours avec la même clé. La clé ne quitte jamais le serveur.
-                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant").strip()
+                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b").strip()
                 models = [MODEL]
                 if fallback_model and fallback_model != MODEL:
                     models.append(fallback_model)
