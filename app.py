@@ -734,23 +734,31 @@ async def chat(body: ChatBody, request: Request):
                     except openai.RateLimitError:
                         print(f"Groq rate limit: model={model_name}, status=429")
                         last_error = "overloaded"
-                        if not emitted and index + 1 < len(models):
+                        if not emitted:
                             continue
                         yield sse({"error": last_error})
                         return
                     except openai.APIStatusError as e:
                         print(f"Groq API error: model={model_name}, status={e.status_code}")
-                        if e.status_code in (429, 404, 408, 409, 422, 500, 502, 503, 529) and not emitted and index + 1 < len(models):
+                        if not emitted and e.status_code in (401, 403):
+                            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+                            yield sse({"done": True})
+                            return
+                        if not emitted and e.status_code in (404, 408, 409, 422, 429, 500, 502, 503, 529):
                             last_error = "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"
                             continue
-                        yield sse({"error": "server_auth" if e.status_code in (401, 403) else ("overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other")})
+                        if not emitted:
+                            yield sse({"t": local_fallback_answer(question, _kb), "fallback": True})
+                            yield sse({"done": True})
+                            return
+                        yield sse({"error": "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"})
                         return
                     except (openai.APIConnectionError, openai.APITimeoutError) as e:
                         # Une erreur réseau ou un délai dépassé sur un modèle ne doit
                         # empêcher d'essayer les modèles suivants.
                         print(f"Groq connection/timeout: model={model_name}, error={type(e).__name__}")
                         last_error = "other"
-                        if not emitted and index + 1 < len(models):
+                        if not emitted:
                             continue
                         yield sse({"error": last_error})
                         return
