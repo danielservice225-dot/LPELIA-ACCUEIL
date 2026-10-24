@@ -672,30 +672,58 @@ async def chat(body: ChatBody, request: Request):
         try:
             if AI_PROVIDER == "groq":
                 groq_messages = [{"role": "system", "content": system}] + msgs
-                response = await client.chat.completions.create(
-                    model=MODEL, messages=groq_messages, max_tokens=MAX_TOKENS, stream=True
-                )
-                async for chunk in response:
-                    if chunk.choices:
-                        piece = chunk.choices[0].delta.content
-                        if isinstance(piece, str) and piece:
-                            yield sse({"t": piece})
+                # Si le modèle principal atteint sa limite, essayer un modèle Groq
+                # de secours avec la même clé. La clé ne quitte jamais le serveur.
+                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.3-70b-versatile").strip()
+                models = [MODEL]
+                if fallback_model and fallback_model != MODEL:
+                    models.append(fallback_model)
+
+                for index, model_name in enumerate(models):
+                    emitted = False
+                    try:
+                        response = await client.chat.completions.create(
+                            model=model_name, messages=groq_messages,
+                            max_tokens=MAX_TOKENS, stream=True
+                        )
+                        async for chunk in response:
+                            if chunk.choices:
+                                piece = chunk.choices[0].delta.content
+                                if isinstance(piece, str) and piece:
+                                    emitted = True
+                                    yield sse({"t": piece})
+                        yield sse({"done": True})
+                        return
+                    except openai.RateLimitError as e:
+                        print(f"Groq rate limit: model={model_name}, status=429")
+                        if not emitted and index + 1 < len(models):
+                            continue
+                        yield sse({"error": "overloaded"})
+                        return
+                    except openai.APIStatusError as e:
+                        print(f"Groq API error: model={model_name}, status={e.status_code}")
+                        if e.status_code in (429, 529) and not emitted and index + 1 < len(models):
+                            continue
+                        yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
+                        return
             else:
                 async with client.messages.stream(
                     model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=msgs
                 ) as response:
                     async for piece in response.text_stream:
                         yield sse({"t": piece})
-            yield sse({"done": True})
+                yield sse({"done": True})
         except (anthropic.AuthenticationError, openai.AuthenticationError):
+            print("AI provider authentication failed; check the provider API key in Render.")
             yield sse({"error": "server_auth"})
-        except (anthropic.RateLimitError, openai.RateLimitError):
+        except anthropic.RateLimitError:
+            print("Anthropic rate limit: status=429")
             yield sse({"error": "overloaded"})
         except anthropic.APIStatusError as e:
+            print(f"Anthropic API error: status={e.status_code}")
             yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
-        except openai.APIStatusError as e:
-            yield sse({"error": "overloaded" if e.status_code in (429, 529) else "other"})
-        except (anthropic.APIConnectionError, openai.APIConnectionError):
+        except (anthropic.APIConnectionError, openai.APIConnectionError) as e:
+            print(f"AI provider connection error: {type(e).__name__}")
             yield sse({"error": "other"})
 
     return StreamingResponse(
