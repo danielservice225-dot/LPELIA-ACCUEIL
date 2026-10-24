@@ -13,6 +13,7 @@ import android.webkit.WebSettings
 import android.webkit.CookieManager
 import android.widget.Toast
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.webkit.JavascriptInterface
 import java.util.Locale
 import java.util.UUID
@@ -36,6 +37,23 @@ class MainActivity : Activity() {
             }
         }
         webView.addJavascriptInterface(NativeVoice(), "LpeliaNative")
+        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) {
+                runOnUiThread {
+                    if (::webView.isInitialized) {
+                        webView.evaluateJavascript(
+                            "window.onLpeliaNativeSpeechDone && window.onLpeliaNativeSpeechDone();",
+                            null
+                        )
+                    }
+                }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                onDone(utteranceId)
+            }
+        })
         // Keep the APK aligned with the live website: avoid stale cached HTML/JS.
         webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
         webView.settings.javaScriptCanOpenWindowsAutomatically = false
