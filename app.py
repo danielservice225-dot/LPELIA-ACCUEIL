@@ -155,6 +155,10 @@ def is_in_scope(question: str, previous_user_questions: list[str] | None = None)
     q = normalize_text(question)
     if not q:
         return False
+    if q in {"bonjour", "bonsoir", "salut", "coucou", "merci", "merci beaucoup", "au revoir"}:
+        return True
+    if q in {"qui es tu", "qui etes vous", "comment tu t appelles", "ton nom", "quel est ton nom"}:
+        return True
 
     # Termes de l'école, de la formation et des domaines techniques autorisés.
     keywords = {
@@ -167,7 +171,7 @@ def is_in_scope(question: str, previous_user_questions: list[str] | None = None)
         "electronique", "electroniques", "informatique", "informatiques",
         "ordinateur", "ordinateurs", "pc", "ordinateur", "programmation",
         "programmer", "programme", "code", "coder", "python", "javascript",
-        "typescript", "html", "css", "java", "c", "cpp", "sql", "algorithme",
+        "typescript", "html", "css", "java", "cpp", "sql", "algorithme",
         "algorithmes", "logiciel", "logiciels", "application", "applications",
         "reseau", "reseaux", "internet", "serveur", "serveurs", "api", "base",
         "donnees", "database", "cybersecurite", "securite", "linux", "windows",
