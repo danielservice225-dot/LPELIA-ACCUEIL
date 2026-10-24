@@ -78,13 +78,40 @@ class Knowledge(BaseModel):
 
 
 def load_kb() -> Knowledge:
-    for path in (KB_FILE, SEED_FILE):
-        try:
-            if path.exists():
-                return Knowledge.model_validate_json(path.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-    return Knowledge()
+    """Charge les connaissances sauvegardées en complétant les champs vides avec la base initiale.
+    
+    Important sur Render : un ancien knowledge.json peut exister avec des champs vides.
+    La base initiale enrichie doit rester disponible même dans ce cas. Les valeurs déjà
+    renseignées dans knowledge.json gardent la priorité sur les valeurs de départ.
+    """
+    seed = Knowledge()
+    try:
+        if SEED_FILE.exists():
+            seed = Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        seed = Knowledge()
+
+    try:
+        if KB_FILE.exists():
+            saved = Knowledge.model_validate_json(KB_FILE.read_text(encoding="utf-8"))
+            merged = seed.model_dump()
+            saved_data = saved.model_dump()
+            for key, value in saved_data.items():
+                if key == "faq":
+                    if value:
+                        merged[key] = value
+                elif key == "suggestions":
+                    if value:
+                        merged[key] = value
+                elif isinstance(value, str):
+                    if value.strip():
+                        merged[key] = value
+                elif value:
+                    merged[key] = value
+            return Knowledge.model_validate(merged)
+    except Exception:
+        pass
+    return seed
 
 
 def save_kb(kb: Knowledge) -> None:
