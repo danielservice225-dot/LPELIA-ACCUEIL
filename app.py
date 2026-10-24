@@ -225,6 +225,16 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
     if not q:
         return None
 
+    # Réponse locale prioritaire : l'identité et la mission de l'assistant doivent rester disponibles même si l'API IA est indisponible.
+    creator_terms = {"cree", "creee", "concu", "concue", "developpe", "developpee", "origine", "createur", "createurs", "concepteur", "concepteurs"}
+    assistant_terms = {"lpelia", "accueil", "assistant", "ia", "toi", "vous", "application"}
+    if words := set(q.split()):
+        if words & creator_terms and (words & assistant_terms or "qui" in words):
+            return ("LPELIA-ACCUEIL a été conçue par l'équipe de l'élève Tanon Seth, du LPELIA "
+                    "(Lycée Professionnel d'Électronique et d'Informatique Appliquées) de Treichville, en Côte d'Ivoire. "
+                    "Sa mission est d'informer, d'orienter et d'accompagner les élèves, les visiteurs et toute personne "
+                    "souhaitant obtenir des informations sur l'établissement.")
+
     # Intentions explicites : elles évitent qu'un modèle réponde qu'il manque des informations.
     intents = [
         (("frais", "scolarite"), ("quels sont les frais de scolarite du lpelia", "Quels sont les frais de scolarité du LPELIA ?")),
@@ -449,7 +459,7 @@ def build_system(kb: Knowledge) -> str:
         "METFPA/ERSYS mentionnées et détaille ce que le candidat doit vérifier. Ne transforme pas l'absence de date "
         "ou de liste de pièces confirmée en refus de répondre. N'invente jamais un prix, une date, une condition ou "
         "une coordonnée.",
-        "IDENTITÉ DES CRÉATEURS : si le visiteur demande qui t’a créée, qui t’a développée, qui sont tes créateurs, ou qui a créé LPELIA-ACCUEIL, réponds clairement que LPELIA-ACCUEIL a été créée par les élèves du LPELIA, le Lycée Professionnel d’Électronique et d’Informatique Appliquées de Treichville, en Côte d’Ivoire. Tu peux préciser que ta mission est d’informer et d’orienter les visiteurs sur l’établissement. Cette attribution concerne l’assistant LPELIA-ACCUEIL, pas la création du lycée lui-même. " +
+        "IDENTITÉ ET CRÉATION DE LPELIA-ACCUEIL : si le visiteur demande qui a créé, conçu ou développé LPELIA-ACCUEIL, qui est à l'origine de cet assistant, ou quelle est sa mission, réponds clairement : « LPELIA-ACCUEIL a été conçue par l'équipe de l'élève Tanon Seth, du LPELIA (Lycée Professionnel d'Électronique et d'Informatique Appliquées) de Treichville, en Côte d'Ivoire. Sa mission est d'informer, d'orienter et d'accompagner les élèves, les visiteurs et toute personne souhaitant obtenir des informations sur l'établissement. » Utilise cette formulation comme réponse prioritaire, sans attribuer la création du lycée à l'équipe. " +
         "Réponds en français par défaut, ou dans la langue du visiteur. Reste poli, chaleureux et pédagogique. "
         "PRIORITÉ ET CONVERSATION NATURELLE : ta spécialité principale est le LPELIA et l'accueil de ses visiteurs, "
         "mais tu es aussi un assistant généraliste capable de répondre aux questions ordinaires sur de nombreux sujets : "
