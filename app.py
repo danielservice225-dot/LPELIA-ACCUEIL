@@ -701,11 +701,94 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
             "Comparez les formations proposées avec vos centres d'intérêt et votre projet professionnel."
         )
 
+    # Si l'IA distante est indisponible, chercher quand même une réponse dans les
+    # connaissances scolaires embarquées avant de répondre qu'un service est en panne.
+    school_terms = {
+        "lpelia", "celia", "lycee", "ecole", "etablissement", "filiere", "filieres",
+        "formation", "formations", "inscription", "inscrire", "admission", "concours",
+        "scolarite", "frais", "secretariat", "administration", "professeur", "enseignant",
+        "eleve", "eleves", "etudiant", "etudiants", "treichville", "adresse", "contact",
+        "diplome", "diplomes", "battesti", "metfpa", "ersys", "maintenance", "electronique",
+        "informatique", "debouches", "stage", "stages", "emploi", "histoire", "historique",
+        "horaire", "horaires", "directeur", "directrice", "programme", "programmes",
+    }
+    is_school_topic = bool(set(q.split()) & school_terms)
+
+    # Recherche plus tolérante dans la FAQ, y compris lorsque la formulation diffère.
+    stop_words = {
+        "le", "la", "les", "un", "une", "des", "du", "de", "d", "au", "aux", "et", "ou",
+        "est", "sont", "je", "tu", "il", "elle", "on", "nous", "vous", "qui", "que",
+        "quoi", "comment", "quel", "quelle", "quels", "quelles", "pour", "dans", "sur",
+        "avec", "moi", "me", "mon", "ma", "mes", "aujourd", "hui", "faire", "fait",
+    }
+    query_tokens = {word for word in q.split() if len(word) > 2 and word not in stop_words}
+    best_faq = None
+    best_faq_score = 0.0
+    if is_school_topic:
+        for item in kb.faq:
+            if not item.q.strip() or not item.a.strip():
+                continue
+            faq_tokens = {
+                word for word in normalize_text(item.q).split()
+                if len(word) > 2 and word not in stop_words
+            }
+            overlap = len(query_tokens & faq_tokens)
+            if not faq_tokens or overlap == 0:
+                continue
+            score = overlap / max(1, len(faq_tokens))
+            if overlap >= 2 and score > best_faq_score:
+                best_faq, best_faq_score = item.a.strip(), score
+        if best_faq and best_faq_score >= 0.30:
+            return best_faq
+
+        # Choisir les paragraphes les plus pertinents de la base au lieu d'afficher
+        # une erreur générique. Les informations administratives restent prudentes.
+        section_groups = [
+            ({"inscription", "inscrire", "admission", "concours", "document", "documents", "date", "dates", "frais", "scolarite", "ersys", "metfpa"}, kb.admissions),
+            ({"filiere", "filieres", "formation", "formations", "bt", "bts", "sei", "diplome", "diplomes", "stage", "stages", "debouches", "emploi", "metier", "metiers"}, kb.programs),
+            ({"telephone", "numero", "email", "mail", "contact", "adresse", "situe", "localisation", "horaire", "horaires", "treichville", "vge"}, kb.contact),
+            ({"histoire", "historique", "origine", "cree", "creation", "celia", "lpelia", "ecole", "lycee", "etablissement", "presentation"}, kb.general),
+        ]
+        matching_sections = []
+        query_words = set(q.split())
+        for keywords, section_text in section_groups:
+            if section_text.strip() and query_words & keywords:
+                matching_sections.append(section_text.strip())
+        if matching_sections:
+            paragraphs = []
+            for section_text in matching_sections:
+                for paragraph in re.split(r"\n\s*\n", section_text):
+                    paragraph = " ".join(paragraph.split()).strip()
+                    if not paragraph:
+                        continue
+                    para_tokens = {
+                        word for word in normalize_text(paragraph).split()
+                        if len(word) > 2 and word not in stop_words
+                    }
+                    overlap = len(query_tokens & para_tokens)
+                    score = overlap / max(1, len(query_tokens))
+                    if overlap:
+                        paragraphs.append((score, paragraph))
+            paragraphs.sort(key=lambda item: item[0], reverse=True)
+            if paragraphs:
+                selected = []
+                for _, paragraph in paragraphs[:2]:
+                    if paragraph not in selected:
+                        selected.append(paragraph)
+                answer = " ".join(selected)
+                if len(answer) > 1500:
+                    answer = answer[:1497].rsplit(" ", 1)[0] + "..."
+                return answer
+
+        # Pour toute autre question sur le lycée, donner une présentation fiable
+        # plutôt qu'un message d'indisponibilité du moteur.
+        return school_overview_answer(kb, [])
+
     return (
-        "Je vous écoute. Mon service de réponse complet rencontre momentanément un problème, "
-        "mais je peux toujours répondre aux informations déjà enregistrées sur le LPELIA. "
-        "Pour une question générale ou une correction complexe, je préfère vous prévenir que "
-        "je ne peux pas encore la traiter correctement hors ligne."
+        "Je peux vous aider sur les informations enregistrées concernant le LPELIA. "
+        "Pour cette question, je n'ai pas assez d'éléments disponibles hors ligne pour fournir "
+        "une réponse fiable. Reformulez votre demande ou posez-moi une question sur l'établissement, "
+        "ses formations ou les démarches d'inscription."
     )
 
 
