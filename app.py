@@ -674,7 +674,7 @@ async def chat(body: ChatBody, request: Request):
                 groq_messages = [{"role": "system", "content": system}] + msgs
                 # Si le modèle principal atteint sa limite, essayer un modèle Groq
                 # de secours avec la même clé. La clé ne quitte jamais le serveur.
-                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.3-70b-versatile").strip()
+                fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant").strip()
                 models = [MODEL]
                 if fallback_model and fallback_model != MODEL:
                     models.append(fallback_model)
