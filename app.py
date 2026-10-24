@@ -679,7 +679,7 @@ async def chat(body: ChatBody, request: Request):
                 # ne doit pas interrompre la conversation si un autre est disponible.
                 fallback_env = os.getenv(
                     "GROQ_FALLBACK_MODELS",
-                    os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b,llama-3.1-8b-instant")
+                    os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b,llama-3.3-70b-versatile,llama-3.1-8b-instant")
                 )
                 candidates = [MODEL]
                 candidates.extend(
@@ -718,7 +718,7 @@ async def chat(body: ChatBody, request: Request):
                         if e.status_code in (429, 404, 408, 409, 422, 500, 502, 503, 529) and not emitted and index + 1 < len(models):
                             last_error = "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"
                             continue
-                        yield sse({"error": "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"})
+                        yield sse({"error": "server_auth" if e.status_code in (401, 403) else ("overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other")})
                         return
                     except (openai.APIConnectionError, openai.APITimeoutError) as e:
                         # Une erreur réseau ou un délai dépassé sur un modèle ne doit
