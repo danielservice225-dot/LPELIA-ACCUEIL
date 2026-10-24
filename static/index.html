@@ -257,14 +257,26 @@ form:focus-within { border-color: var(--glow); }
     return vs.find(function (v) { return /^fr(-|_)FR/i.test(v.lang); }) || vs.find(function (v) { return /^fr/i.test(v.lang); }) || null;
   }
   /* iOS et certains Android n'autorisent la voix qu'après un geste de l'utilisateur. */
+  function nativeVoiceAvailable() {
+    try { return !!(window.LpeliaNative && window.LpeliaNative.available()); } catch (e) { return false; }
+  }
   function unlockTTS() {
+    if (nativeVoiceAvailable()) return;
     if (!synth || !window.SpeechSynthesisUtterance) return;
     try { var u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch (e) {}
   }
+  window.onLpeliaNativeSpeechDone = function () { ended++; maybeIdle(); };
   function maybeIdle() { if (streamDone && ended >= spoken && state === "speaking") setState("idle"); }
   function queueSpeak(s) {
     s = clean(s);
-    if (!s || !synth || !window.SpeechSynthesisUtterance) return;
+    if (!s) return;
+    if (nativeVoiceAvailable()) {
+      spoken++;
+      if (state !== "listening") setState("speaking");
+      try { window.LpeliaNative.speak(s); } catch (e) { ended++; maybeIdle(); }
+      return;
+    }
+    if (!synth || !window.SpeechSynthesisUtterance) return;
     var voice = pickVoice();
     var u = new SpeechSynthesisUtterance(s);
     u.lang = voice ? voice.lang : "fr-FR"; if (voice) u.voice = voice; u.rate = 1.02;
@@ -280,13 +292,17 @@ form:focus-within { border-color: var(--glow); }
     if (final && buf.trim()) { queueSpeak(buf); buf = ""; }
   }
   function speakAll(text) {
-    if (!synth || !window.SpeechSynthesisUtterance) { showHint("La lecture à voix haute n'est pas disponible sur cet appareil.", true); return; }
-    speakToken++; synth.cancel(); spoken = 0; ended = 0; streamDone = true; buf = text;
+    if (!nativeVoiceAvailable() && (!synth || !window.SpeechSynthesisUtterance)) { showHint("La lecture à voix haute n'est pas disponible sur cet appareil.", true); return; }
+    speakToken++;
+    if (nativeVoiceAvailable()) { try { window.LpeliaNative.stop(); } catch (e) {} }
+    else if (synth) synth.cancel();
+    spoken = 0; ended = 0; streamDone = true; buf = text;
     flushSentences(true);
     if (!spoken) setState("idle");
   }
   function stopSpeaking() {
     speakToken++; buf = "";
+    if (nativeVoiceAvailable()) { try { window.LpeliaNative.stop(); } catch (e) {} }
     if (synth) synth.cancel();
     if (state === "speaking") setState("idle");
   }
