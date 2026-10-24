@@ -386,6 +386,52 @@ def add_web_sources(system: str, results: list[dict[str, str]]) -> str:
     )
 
 
+
+def is_broad_overview_question(question: str) -> bool:
+    q = normalize_text(question)
+    cues = (
+        "plus d information", "plus d informations", "plus d info", "parle moi de",
+        "parle du", "presente moi", "presentation", "informations sur", "renseignements sur",
+        "je veux connaitre", "je veux en savoir", "qu est ce que le lpelia",
+        "c est quoi le lpelia", "qui est le lpelia", "dis moi tout sur",
+    )
+    return "lpelia" in q and any(normalize_text(cue) in q for cue in cues)
+
+
+def school_overview_answer(kb: Knowledge, web_results: list[dict[str, str]]) -> str:
+    answer = (
+        "Le LPELIA signifie Lycée Professionnel d'Électronique et d'Informatique Appliquées. "
+        "Il se trouve à Treichville, à Abidjan, en Côte d'Ivoire, et il est historiquement associé "
+        "au nom CELIA « Barry Battesti » (Centre d'Électronique et d'Informatique Appliquée). "
+        "D'après les informations disponibles dans la base, le CELIA a été créé en 1988 dans le cadre "
+        "d'un partenariat entre le gouvernement ivoirien, l'UPACI et la coopération française. "
+        "Les formations rapportées comprennent le BT en Maintenance électronique, le BTS en Systèmes "
+        "électroniques et informatiques (SEI), ainsi que des formations qualifiantes ou continues en "
+        "informatique de base, bureautique, maintenance et réseaux. L'électronique concerne notamment "
+        "les circuits, les composants, les mesures et le diagnostic des pannes ; l'informatique appliquée "
+        "concerne les ordinateurs, les logiciels et les réseaux. Les filières effectivement ouvertes et "
+        "les modalités d'inscription peuvent changer selon la session : elles doivent être vérifiées dans "
+        "les annonces officielles du METFPA et sur ERSYS."
+    )
+    sources = []
+    for item in web_results[:4]:
+        title = " ".join(item.get("title", "").split()).strip()
+        url = item.get("url", "").strip()
+        if title and url.startswith("http"):
+            sources.append(f"{title} : {url}")
+    if not sources:
+        sources = [
+            "Plateforme ERSYS : https://www.ersys-ci.net/",
+            "Historique du CELIA (source indiquée dans la base) : http://celiabarrybattesti.sch-ci.org/_propos_de_lcole/histoire_de_lcole/",
+            "Diplômes du CELIA (source indiquée dans la base) : http://dfpicmemeasfp.sch-ci.org/les_diplms/le_celia/",
+        ]
+    return answer + "\\n\\nPour approfondir, voici des sources à consulter : " + " ; ".join(sources) + (
+        "\\n\\nRemarque : les informations historiques et les formations ci-dessus proviennent de la base "
+        "documentaire disponible ; les dates, frais et conditions de la session actuelle doivent être confirmés "
+        "dans les annonces officielles."
+    )
+
+
 def build_system(kb: Knowledge) -> str:
     name = kb.assistant_name.strip() or "LPELIA Accueil"
     school = kb.school_name.strip() or "l'école"
@@ -603,7 +649,13 @@ async def chat(body: ChatBody, request: Request):
     # En cas d'échec du moteur, l'assistant conserve ses réponses FAQ validées.
     question = msgs[-1]["content"]
     web_results = await search_lpelia_web(question) if is_school_question(question) else []
-    local_answer = local_school_answer(question, _kb) if not web_results else None
+    # Une demande générale de présentation doit toujours recevoir une réponse utile,
+    # même si le moteur de recherche renvoie des résultats pauvres ou incomplets.
+    local_answer = (
+        school_overview_answer(_kb, web_results)
+        if is_broad_overview_question(question)
+        else (local_school_answer(question, _kb) if not web_results else None)
+    )
     if local_answer:
         async def local_stream():
             yield sse({"t": local_answer})
