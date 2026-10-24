@@ -646,8 +646,8 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
     if not q:
         return "Je n'ai pas bien reçu votre message. Pouvez-vous le renvoyer ?"
 
-    if q in {"bonjour", "bonsoir", "salut", "coucou", "hello", "hey", "bjr", "bonsoir a tous"} or q.startswith(("bonjour ", "bonsoir ", "salut ", "coucou ")):
-        return f"Bonjour ! Ravi de vous accueillir. Que puis-je faire pour vous aujourd'hui ?"
+    if q in {"bonjour", "bonsoir", "salut", "coucou", "hello", "hey", "bjr"} or q.startswith(("bonjour ", "bonsoir ", "salut ", "coucou ")):
+        return "Bonjour ! Ravi de vous accueillir. Que puis-je faire pour vous aujourd'hui ?"
     if q in {"ca va", "comment ca va", "comment allez vous", "comment vas tu"}:
         return "Ça va bien, merci ! Et vous, comment allez-vous ?"
     if q in {"merci", "merci beaucoup", "je te remercie", "thanks"}:
@@ -657,45 +657,44 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
     if q in {"qui es tu", "qui etes vous", "comment tu t appelles", "ton nom", "quel est ton nom"}:
         return f"Je suis {kb.assistant_name or 'LPELIA Accueil'}, votre assistant d'accueil. Je peux vous renseigner sur le LPELIA et vous aider sur d'autres sujets lorsque le service de réponse est disponible."
 
-    # Corrections locales simples : utiles même pendant une panne, sans prétendre
-    # remplacer une relecture grammaticale complète par le modèle.
     correction_request = any(term in q for term in (
-        "corrige", "correction", "corriger", "orthographe", "faute", "reformule",
-        "corrige moi", "corrige ce texte", "corrige cette phrase"
+        "corrige", "correction", "corriger", "orthographe", "faute", "reformule"
     ))
     if correction_request:
         text_to_fix = re.sub(
-            r"(?i)^(peux tu|pouvez vous|est ce que tu peux|corrige|corriger|corrige moi|corrige ce texte|corrige cette phrase|orthographe de)\\s*[:,-]?\\s*",
+            r"(?i)^(peux tu|pouvez vous|est ce que tu peux|corrige|corriger|corrige moi|corrige ce texte|corrige cette phrase|orthographe de)\s*[:,-]?\s*",
             "", raw
-        ).strip(" \\t\\n:«»\\"")
+        ).strip(" \t\n:«»'\"")
         if not text_to_fix or normalize_text(text_to_fix) in {
             "corrige", "corrige moi", "corrige ce texte", "corrige cette phrase",
             "corriger", "corrige les erreurs", "corrige les fautes d orthographe"
         }:
             return "Bien sûr. Envoyez-moi le texte ou la phrase à corriger, et je vous proposerai une version corrigée."
         fixes = [
-            (r"(?i)\\bsa va\\b", "ça va"), (r"(?i)\\bsa\\s+marche\\b", "ça marche"),
-            (r"(?i)\\il\\s+y\\s+a\\b", "il y a"), (r"(?i)\\bcomme meme\\b", "quand même"),
-            (r"(?i)\\bpar ce que\\b", "parce que"), (r"(?i)\\bje cest\\b", "je sais"),
-            (r"(?i)\\bje c'est\\b", "je sais"), (r"(?i)\\bsa\\s+été\\b", "ça a été"),
-            (r"(?i)\\bont\\s+été\\b", "ont été"), (r"(?i)\\btu\\s+est\\b", "tu es"),
-            (r"(?i)\\bil\\s+faut\\s+que\\s+je\\s+fait\\b", "il faut que je fasse"),
-            (r"(?i)\\bje\\s+voudrais\\s+que\\s+tu\\s+fait\\b", "je voudrais que tu fasses"),
+            (r"(?i)\bsa va\b", "ça va"),
+            (r"(?i)\bsa marche\b", "ça marche"),
+            (r"(?i)\bcomme meme\b", "quand même"),
+            (r"(?i)\bpar ce que\b", "parce que"),
+            (r"(?i)\bje cest\b", "je sais"),
+            (r"(?i)\bje c'est\b", "je sais"),
+            (r"(?i)\bsa été\b", "ça a été"),
+            (r"(?i)\btu est\b", "tu es"),
+            (r"(?i)\bil faut que je fait\b", "il faut que je fasse"),
+            (r"(?i)\bje voudrais que tu fait\b", "je voudrais que tu fasses"),
         ]
         corrected = text_to_fix
-        for pattern, replacement in fixes:
-            corrected = re.sub(pattern, replacement, corrected)
-        corrected = re.sub(r"\\s+", " ", corrected).strip()
+        for pattern, value in fixes:
+            corrected = re.sub(pattern, value, corrected)
+        corrected = re.sub(r"\s+", " ", corrected).strip()
         if corrected and corrected[-1] not in ".!?":
             corrected += "."
-        return "Voici une première correction : " + corrected + " Si vous souhaitez une correction grammaticale plus complète, je peux la faire dès que le moteur de réponse est disponible."
+        return "Voici une première correction : " + corrected + " Pour une correction grammaticale complète, le moteur de réponse doit être disponible."
 
     known = local_school_answer(question, kb)
     if known:
         return known
     if is_broad_overview_question(question):
         return school_overview_answer(kb, [])
-
     if any(term in q for term in ("pourquoi choisir le lpelia", "choisir lpelia", "avantages lpelia")):
         return local_school_answer("Pourquoi choisir le LPELIA ?", kb) or (
             "Le LPELIA peut vous intéresser si vous souhaitez vous former en électronique et en informatique appliquée. "
@@ -703,9 +702,10 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
         )
 
     return (
-        "Je vous écoute. Mon service de réponse complet rencontre momentanément un problème, mais vous pouvez "
-        "continuer à me poser des questions sur le LPELIA. Pour une question générale ou une correction complexe, "
-        "je préfère vous prévenir que je ne peux pas encore la traiter correctement hors ligne."
+        "Je vous écoute. Mon service de réponse complet rencontre momentanément un problème, "
+        "mais je peux toujours répondre aux informations déjà enregistrées sur le LPELIA. "
+        "Pour une question générale ou une correction complexe, je préfère vous prévenir que "
+        "je ne peux pas encore la traiter correctement hors ligne."
     )
 
 
