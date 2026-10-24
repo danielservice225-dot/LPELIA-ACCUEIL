@@ -698,6 +698,26 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
             corrected += "."
         return "Voici une première correction : " + corrected + " Pour une correction grammaticale complète, le moteur de réponse doit être disponible."
 
+    # Répondre d'abord aux questions générales de définition, même si le mot-clé
+    # appartient aussi aux spécialités du LPELIA. Ne pas remplacer une définition
+    # par la présentation administrative de l'établissement.
+    if any(phrase in q for phrase in (
+        "quest ce que electronique", "qu est ce que electronique",
+        "c est quoi electronique", "definition electronique",
+        "explique electronique", "que signifie electronique",
+    )):
+        return (
+            "L’électronique est une branche de la science et de la technologie qui étudie "
+            "et utilise la circulation des électrons dans des composants et des circuits pour "
+            "traiter, commander ou transmettre des signaux électriques. Elle s’appuie notamment "
+            "sur des composants comme les résistances, les condensateurs, les diodes et les transistors. "
+            "On la retrouve dans les téléphones, les téléviseurs, les ordinateurs, les systèmes audio, "
+            "les appareils médicaux et les systèmes embarqués. Par exemple, un circuit électronique "
+            "peut mesurer une température, amplifier un son ou commander un moteur. "
+            "Elle se distingue de l’électricité générale par l’importance accordée au traitement "
+            "des signaux et au fonctionnement des composants."
+        )
+
     known = local_school_answer(question, kb)
     if known:
         return known
