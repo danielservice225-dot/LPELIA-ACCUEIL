@@ -1,0 +1,50 @@
+name: Build LPELIA Accueil APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/build-android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build debug APK
+        working-directory: android
+        run: gradle --no-daemon assembleDebug
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk LPELIA-Accueil.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LPELIA-Accueil-APK
+          path: LPELIA-Accueil.apk
+          retention-days: 30
+      - name: Publish APK on GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: lpelia-apk-${{ github.run_number }}
+          name: LPELIA Accueil APK ${{ github.run_number }}
+          body: |
+            APK Android de LPELIA Accueil.
+            Cette application ouvre https://lpelia-accueil.onrender.com.
+            Une connexion Internet est nécessaire pour discuter avec l’assistant.
+          files: LPELIA-Accueil.apk
+          make_latest: true
