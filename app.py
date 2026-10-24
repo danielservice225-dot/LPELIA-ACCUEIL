@@ -425,8 +425,8 @@ def school_overview_answer(kb: Knowledge, web_results: list[dict[str, str]]) -> 
             "Historique du CELIA (source indiquée dans la base) : http://celiabarrybattesti.sch-ci.org/_propos_de_lcole/histoire_de_lcole/",
             "Diplômes du CELIA (source indiquée dans la base) : http://dfpicmemeasfp.sch-ci.org/les_diplms/le_celia/",
         ]
-    return answer + "\\n\\nPour approfondir, voici des sources à consulter : " + " ; ".join(sources) + (
-        "\\n\\nRemarque : les informations historiques et les formations ci-dessus proviennent de la base "
+    return answer + "\n\nPour approfondir, voici des sources à consulter : " + " ; ".join(sources) + (
+        "\n\nRemarque : les informations historiques et les formations ci-dessus proviennent de la base "
         "documentaire disponible ; les dates, frais et conditions de la session actuelle doivent être confirmés "
         "dans les annonces officielles."
     )
