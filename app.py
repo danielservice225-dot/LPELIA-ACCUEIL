@@ -72,7 +72,7 @@ class QA(BaseModel):
 
 class Knowledge(BaseModel):
     assistant_name: str = Field(default="LPELIA Accueil", max_length=60)
-    school_name: str = Field(default="", max_length=120)
+    school_name: str = Field(default="", max_length=250)
     welcome: str = Field(default=DEFAULT_WELCOME, max_length=400)
     general: str = Field(default="", max_length=20000)
     programs: str = Field(default="", max_length=20000)
@@ -731,15 +731,25 @@ async def admin_put(kb: Knowledge, request: Request):
             {"detail": f"Trop de contenu (maximum {MAX_KB_CHARS} caractères au total)."}, status_code=413
         )
     # Même une sauvegarde depuis l'interface admin ne doit pas effacer la base intégrée.
-    merged_kb = merge_knowledge(
-        Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8")) if SEED_FILE.exists() else Knowledge(),
-        kb,
-    )
+    # Une erreur de validation du fichier seed ne doit jamais produire une erreur 500 opaque.
     try:
+        seed_kb = (
+            Knowledge.model_validate_json(SEED_FILE.read_text(encoding="utf-8"))
+            if SEED_FILE.exists()
+            else Knowledge()
+        )
+        merged_kb = merge_knowledge(seed_kb, kb)
         save_kb(merged_kb)
     except OSError:
         return JSONResponse(
-            {"detail": "Enregistrement impossible sur ce serveur (disque en lecture seule)."}, status_code=500
+            {"detail": "Enregistrement impossible : le serveur ne peut pas écrire dans le dossier de données."},
+            status_code=500,
+        )
+    except Exception as exc:
+        print(f"Erreur de sauvegarde des connaissances admin: {type(exc).__name__}: {exc}")
+        return JSONResponse(
+            {"detail": "La sauvegarde a échoué à cause d'une erreur de validation de la base scolaire. Vérifiez les champs et réessayez."},
+            status_code=500,
         )
     _kb = merged_kb
     return {"ok": True, "chars": len(merged_kb.model_dump_json())}
