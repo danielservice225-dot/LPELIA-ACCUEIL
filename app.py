@@ -740,8 +740,8 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
         "scolarite", "frais", "secretariat", "administration", "professeur", "enseignant",
         "eleve", "eleves", "etudiant", "etudiants", "integrer", "entrer", "rejoindre",
         "treichville", "adresse", "contact", "diplome", "diplomes", "battesti", "metfpa",
-        "ersys", "maintenance", "electronique", "informatique", "debouches", "stage", "stages",
-        "emploi", "histoire", "historique", "horaire", "horaires", "directeur", "directrice",
+        "ersys", "debouches", "stage", "stages",
+        "histoire", "historique", "horaire", "horaires", "directeur", "directrice",
         "programme", "programmes", "filiere", "filieres", "formation", "formations", "lycee",
         "ecole", "etablissement", "celia", "lpelia",
     }
