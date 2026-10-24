@@ -2,8 +2,9 @@ package ci.lpelia.accueil
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -27,6 +28,9 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Make the phone's volume buttons control media/speech volume while this app is open.
+        setVolumeControlStream(AudioManager.STREAM_MUSIC)
+
         webView = WebView(this)
         setContentView(webView)
 
@@ -38,7 +42,8 @@ class MainActivity : Activity() {
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
-        webView.settings.mediaPlaybackRequiresUserGesture = true
+        // Allow audio playback in the WebView without requiring a separate tap for every playback.
+        webView.settings.mediaPlaybackRequiresUserGesture = false
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
@@ -77,8 +82,14 @@ class MainActivity : Activity() {
                 return@TextToSpeech
             }
 
-            // Prefer French. If French voice data is not installed, try the device language
-            // instead of reporting that speech is unavailable immediately.
+            // Route spoken responses as speech/audio to the device's media output.
+            engine.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+
             val franceResult = engine.setLanguage(Locale.FRANCE)
             val frenchResult = if (franceResult == TextToSpeech.LANG_MISSING_DATA ||
                 franceResult == TextToSpeech.LANG_NOT_SUPPORTED) {
