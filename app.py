@@ -86,7 +86,7 @@ def merge_knowledge(seed: Knowledge, saved: Knowledge) -> Knowledge:
         base_text = str(getattr(seed, key) or "").strip()
         extra_text = str(getattr(saved, key) or "").strip()
         if extra_text and extra_text not in base_text:
-            merged[key] = (base_text + chr(10) * 2 + extra_text).strip() if base_text else extra_text
+            merged[key] = ((base_text + chr(10) * 2 + extra_text).strip() if base_text else extra_text)[:{"general": 20000, "programs": 20000, "admissions": 10000, "contact": 3000}[key]]
         else:
             merged[key] = base_text or extra_text
 
@@ -98,7 +98,7 @@ def merge_knowledge(seed: Knowledge, saved: Knowledge) -> Knowledge:
         if question and question not in seen_questions and item.a.strip():
             combined_faq.append(item.model_dump())
             seen_questions.add(question)
-    merged["faq"] = combined_faq
+    merged["faq"] = combined_faq[:200]
 
     combined_suggestions = []
     for item in list(seed.suggestions) + list(saved.suggestions):
