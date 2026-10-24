@@ -720,6 +720,15 @@ async def chat(body: ChatBody, request: Request):
                             continue
                         yield sse({"error": "overloaded" if e.status_code in (429, 500, 502, 503, 529) else "other"})
                         return
+                    except (openai.APIConnectionError, openai.APITimeoutError) as e:
+                        # Une erreur réseau ou un délai dépassé sur un modèle ne doit
+                        # empêcher d'essayer les modèles suivants.
+                        print(f"Groq connection/timeout: model={model_name}, error={type(e).__name__}")
+                        last_error = "other"
+                        if not emitted and index + 1 < len(models):
+                            continue
+                        yield sse({"error": last_error})
+                        return
             else:
                 async with client.messages.stream(
                     model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=msgs
