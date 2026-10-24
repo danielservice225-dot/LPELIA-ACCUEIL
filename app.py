@@ -705,12 +705,15 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
     # connaissances scolaires embarquées avant de répondre qu'un service est en panne.
     school_terms = {
         "lpelia", "celia", "lycee", "ecole", "etablissement", "filiere", "filieres",
-        "formation", "formations", "inscription", "inscrire", "admission", "concours",
+        "formation", "formations", "inscription", "inscrire", "admission", "admissions", "concours", "conditions",
+        "condition", "documents", "document", "dossier", "dossiers", "candidat", "candidature",
         "scolarite", "frais", "secretariat", "administration", "professeur", "enseignant",
-        "eleve", "eleves", "etudiant", "etudiants", "treichville", "adresse", "contact",
-        "diplome", "diplomes", "battesti", "metfpa", "ersys", "maintenance", "electronique",
-        "informatique", "debouches", "stage", "stages", "emploi", "histoire", "historique",
-        "horaire", "horaires", "directeur", "directrice", "programme", "programmes",
+        "eleve", "eleves", "etudiant", "etudiants", "integrer", "entrer", "rejoindre",
+        "treichville", "adresse", "contact", "diplome", "diplomes", "battesti", "metfpa",
+        "ersys", "maintenance", "electronique", "informatique", "debouches", "stage", "stages",
+        "emploi", "histoire", "historique", "horaire", "horaires", "directeur", "directrice",
+        "programme", "programmes", "filiere", "filieres", "formation", "formations", "lycee",
+        "ecole", "etablissement", "celia", "lpelia",
     }
     is_school_topic = bool(set(q.split()) & school_terms)
 
@@ -780,15 +783,32 @@ def local_fallback_answer(question: str, kb: Knowledge) -> str:
                     answer = answer[:1497].rsplit(" ", 1)[0] + "..."
                 return answer
 
-        # Pour toute autre question sur le lycée, donner une présentation fiable
-        # plutôt qu'un message d'indisponibilité du moteur.
-        return school_overview_answer(kb, [])
+        # Dernier recours scolaire : fournir une réponse utile issue de la base,
+        # sans exposer les pannes du fournisseur ou prétendre que la base est indisponible.
+        overview = school_overview_answer(kb, [])
+        if overview and len(overview.strip()) > 80:
+            return overview
+        if kb.general.strip():
+            return kb.general.strip()[:1500]
+        return (
+            "Le LPELIA est un établissement professionnel situé à Treichville, en Côte d'Ivoire, "
+            "dont les domaines de référence sont l'électronique et l'informatique appliquées. "
+            "Pour vous orienter correctement, dites-moi si votre question concerne les formations, "
+            "les inscriptions, les diplômes, l'adresse ou l'histoire de l'établissement."
+        )
 
+    # Hors sujet scolaire : ne pas afficher de message technique sur le moteur ou la base.
+    # Donner une ouverture naturelle et inviter à préciser la demande si la réponse locale
+    # ne peut pas être calculée de façon fiable.
+    if any(term in q for term in ("electronique", "informatique", "programmation", "ordinateur", "circuit", "robot", "arduino", "esp32", "python", "code", "reseau", "internet", "application", "logiciel")):
+        return (
+            "Bien sûr. Je peux vous accompagner pas à pas en électronique et en informatique. "
+            "Précisez ce que vous voulez comprendre ou réaliser, et je vous proposerai une méthode "
+            "concrète avec des exemples adaptés à votre niveau."
+        )
     return (
-        "Je peux vous aider sur les informations enregistrées concernant le LPELIA. "
-        "Pour cette question, je n'ai pas assez d'éléments disponibles hors ligne pour fournir "
-        "une réponse fiable. Reformulez votre demande ou posez-moi une question sur l'établissement, "
-        "ses formations ou les démarches d'inscription."
+        "Bien sûr, je vous écoute. Dites-moi ce que vous souhaitez savoir ou accomplir, "
+        "et je vous aiderai à avancer étape par étape."
     )
 
 
