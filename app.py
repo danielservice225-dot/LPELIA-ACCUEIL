@@ -478,6 +478,18 @@ def build_system(kb: Knowledge) -> str:
         "ou de liste de pièces confirmée en refus de répondre. N'invente jamais un prix, une date, une condition ou "
         "une coordonnée.",
         "IDENTITÉ ET CRÉATION DE LPELIA-ACCUEIL : si le visiteur demande qui a créé, conçu ou développé LPELIA-ACCUEIL, qui est à l'origine de cet assistant, ou quelle est sa mission, réponds clairement : « LPELIA-ACCUEIL a été conçue par l'équipe de l'élève Tanon Seth, du LPELIA (Lycée Professionnel d'Électronique et d'Informatique Appliquées) de Treichville, en Côte d'Ivoire. Sa mission est d'informer, d'orienter et d'accompagner les élèves, les visiteurs et toute personne souhaitant obtenir des informations sur l'établissement. » Utilise cette formulation comme réponse prioritaire, sans attribuer la création du lycée à l'équipe. " +
+        "CONVERSATION HUMAINE : réponds comme une personne serviable, naturelle et attentive. "
+        "Réponds directement à la question, sans répéter ton identité ni réciter ton rôle à chaque message. "
+        "Tiens compte du contexte des messages précédents et des relances courtes. "
+        "Accueille naturellement les salutations, remercie simplement, reconnais une émotion avec tact et "
+        "pose au maximum une question si un détail indispensable manque. "
+        "CORRECTION DE TEXTE : si la personne demande de corriger, relis ou reformule un texte, corrige "
+        "l'orthographe, les accords, la conjugaison, la grammaire et la ponctuation en conservant le sens. "
+        "Donne d'abord la version corrigée, puis explique brièvement les principales corrections seulement "
+        "si c'est utile ou demandé. Si elle demande une explication, un calcul, une traduction ou du code, "
+        "effectue directement la tâche. Ne refuse pas une question simplement parce qu'elle n'est pas liée "
+        "au LPELIA. Pour les faits propres à l'établissement, privilégie toujours la base de connaissances "
+        "et n'invente jamais les détails manquants. "
         "Réponds en français par défaut, ou dans la langue du visiteur. Reste poli, chaleureux et pédagogique. "
         "PRIORITÉ ET CONVERSATION NATURELLE : ta spécialité principale est le LPELIA et l'accueil de ses visiteurs, "
         "mais tu es aussi un assistant généraliste capable de répondre aux questions ordinaires sur de nombreux sujets : "
@@ -628,25 +640,72 @@ def sse(data: dict) -> str:
 
 
 def local_fallback_answer(question: str, kb: Knowledge) -> str:
-    """Réponse de secours honnête quand aucun modèle distant ne répond."""
+    """Réponses locales conviviales si le fournisseur IA ne répond pas."""
     q = normalize_text(question)
+    raw = question.strip()
     if not q:
-        return "Je n'ai pas reçu de question lisible. Pouvez-vous la reformuler ?"
-    if q in {"bonjour", "bonsoir", "salut", "coucou", "hello", "hey"} or q.startswith(("bonjour ", "bonsoir ", "salut ")):
-        return f"Bonjour, je suis {kb.assistant_name or 'LPELIA Accueil'}. Comment puis-je vous aider ?"
-    if q in {"merci", "merci beaucoup", "je te remercie"}:
-        return "Avec plaisir. Je reste à votre disposition pour vous aider."
+        return "Je n'ai pas bien reçu votre message. Pouvez-vous le renvoyer ?"
+
+    if q in {"bonjour", "bonsoir", "salut", "coucou", "hello", "hey", "bjr", "bonsoir a tous"} or q.startswith(("bonjour ", "bonsoir ", "salut ", "coucou ")):
+        return f"Bonjour ! Ravi de vous accueillir. Que puis-je faire pour vous aujourd'hui ?"
+    if q in {"ca va", "comment ca va", "comment allez vous", "comment vas tu"}:
+        return "Ça va bien, merci ! Et vous, comment allez-vous ?"
+    if q in {"merci", "merci beaucoup", "je te remercie", "thanks"}:
+        return "Avec plaisir ! N'hésitez pas si vous avez une autre question."
+    if q in {"au revoir", "a bientot", "bonne journee", "bonne soiree"}:
+        return "Au revoir et excellente journée à vous !"
     if q in {"qui es tu", "qui etes vous", "comment tu t appelles", "ton nom", "quel est ton nom"}:
-        return f"Je suis {kb.assistant_name or 'LPELIA Accueil'}, l'assistant d'accueil du LPELIA."
+        return f"Je suis {kb.assistant_name or 'LPELIA Accueil'}, votre assistant d'accueil. Je peux vous renseigner sur le LPELIA et vous aider sur d'autres sujets lorsque le service de réponse est disponible."
+
+    # Corrections locales simples : utiles même pendant une panne, sans prétendre
+    # remplacer une relecture grammaticale complète par le modèle.
+    correction_request = any(term in q for term in (
+        "corrige", "correction", "corriger", "orthographe", "faute", "reformule",
+        "corrige moi", "corrige ce texte", "corrige cette phrase"
+    ))
+    if correction_request:
+        text_to_fix = re.sub(
+            r"(?i)^(peux tu|pouvez vous|est ce que tu peux|corrige|corriger|corrige moi|corrige ce texte|corrige cette phrase|orthographe de)\\s*[:,-]?\\s*",
+            "", raw
+        ).strip(" \\t\\n:«»\\"")
+        if not text_to_fix or normalize_text(text_to_fix) in {
+            "corrige", "corrige moi", "corrige ce texte", "corrige cette phrase",
+            "corriger", "corrige les erreurs", "corrige les fautes d orthographe"
+        }:
+            return "Bien sûr. Envoyez-moi le texte ou la phrase à corriger, et je vous proposerai une version corrigée."
+        fixes = [
+            (r"(?i)\\bsa va\\b", "ça va"), (r"(?i)\\bsa\\s+marche\\b", "ça marche"),
+            (r"(?i)\\il\\s+y\\s+a\\b", "il y a"), (r"(?i)\\bcomme meme\\b", "quand même"),
+            (r"(?i)\\bpar ce que\\b", "parce que"), (r"(?i)\\bje cest\\b", "je sais"),
+            (r"(?i)\\bje c'est\\b", "je sais"), (r"(?i)\\bsa\\s+été\\b", "ça a été"),
+            (r"(?i)\\bont\\s+été\\b", "ont été"), (r"(?i)\\btu\\s+est\\b", "tu es"),
+            (r"(?i)\\bil\\s+faut\\s+que\\s+je\\s+fait\\b", "il faut que je fasse"),
+            (r"(?i)\\bje\\s+voudrais\\s+que\\s+tu\\s+fait\\b", "je voudrais que tu fasses"),
+        ]
+        corrected = text_to_fix
+        for pattern, replacement in fixes:
+            corrected = re.sub(pattern, replacement, corrected)
+        corrected = re.sub(r"\\s+", " ", corrected).strip()
+        if corrected and corrected[-1] not in ".!?":
+            corrected += "."
+        return "Voici une première correction : " + corrected + " Si vous souhaitez une correction grammaticale plus complète, je peux la faire dès que le moteur de réponse est disponible."
+
     known = local_school_answer(question, kb)
     if known:
         return known
     if is_broad_overview_question(question):
         return school_overview_answer(kb, [])
+
+    if any(term in q for term in ("pourquoi choisir le lpelia", "choisir lpelia", "avantages lpelia")):
+        return local_school_answer("Pourquoi choisir le LPELIA ?", kb) or (
+            "Le LPELIA peut vous intéresser si vous souhaitez vous former en électronique et en informatique appliquée. "
+            "Comparez les formations proposées avec vos centres d'intérêt et votre projet professionnel."
+        )
+
     return (
-        "Je rencontre actuellement une indisponibilité du moteur de réponse et je ne veux pas vous donner "
-        "une information inventée. Vous pouvez réessayer dans un instant. Pour les questions sur le LPELIA, "
-        "je peux répondre aux informations déjà enregistrées dans la base de connaissances."
+        "Je vous écoute. Mon service de réponse complet rencontre momentanément un problème, mais vous pouvez "
+        "continuer à me poser des questions sur le LPELIA. Pour une question générale ou une correction complexe, "
+        "je préfère vous prévenir que je ne peux pas encore la traiter correctement hors ligne."
     )
 
 
