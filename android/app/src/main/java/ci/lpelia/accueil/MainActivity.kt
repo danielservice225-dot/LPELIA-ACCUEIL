@@ -12,9 +12,15 @@ import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import android.webkit.CookieManager
 import android.widget.Toast
+import android.speech.tts.TextToSpeech
+import android.webkit.JavascriptInterface
+import java.util.Locale
+import java.util.UUID
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var textToSpeech: TextToSpeech
+    private var ttsReady = false
     private val homeUrl = "https://lpelia-accueil.onrender.com/"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,6 +28,14 @@ class MainActivity : Activity() {
         webView = WebView(this)
         setContentView(webView)
         webView.settings.javaScriptEnabled = true
+        textToSpeech = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = textToSpeech.setLanguage(Locale.FRANCE)
+                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
+                    result != TextToSpeech.LANG_NOT_SUPPORTED
+            }
+        }
+        webView.addJavascriptInterface(NativeVoice(), "LpeliaNative")
         // Keep the APK aligned with the live website: avoid stale cached HTML/JS.
         webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
         webView.settings.javaScriptCanOpenWindowsAutomatically = false
@@ -54,6 +68,23 @@ class MainActivity : Activity() {
         if (savedInstanceState == null) webView.loadUrl(homeUrl) else webView.restoreState(savedInstanceState)
     }
 
+    inner class NativeVoice {
+        @JavascriptInterface
+        fun speak(text: String) {
+            if (!ttsReady || text.isBlank()) return
+            val utteranceId = UUID.randomUUID().toString()
+            textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, utteranceId)
+        }
+
+        @JavascriptInterface
+        fun stop() {
+            if (::textToSpeech.isInitialized) textToSpeech.stop()
+        }
+
+        @JavascriptInterface
+        fun available(): Boolean = ttsReady
+    }
+
     private fun askForMicrophone() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 200)
@@ -81,6 +112,10 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         if (this::webView.isInitialized) webView.destroy()
+        if (::textToSpeech.isInitialized) {
+            textToSpeech.stop()
+            textToSpeech.shutdown()
+        }
         super.onDestroy()
     }
 }
