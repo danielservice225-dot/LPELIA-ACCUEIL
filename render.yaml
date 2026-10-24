@@ -18,6 +18,10 @@ services:
       - key: ACCESS_CODE
         sync: false
       - key: MAX_DAILY_QUESTIONS
-        value: "500"
+        value: "2000"
+      - key: RATE_LIMIT_PER_MIN
+        value: "30"
+      - key: GROQ_FALLBACK_MODELS
+        value: openai/gpt-oss-120b,llama-3.1-8b-instant
       - key: CLAUDE_MODEL
         value: claude-sonnet-5-5
