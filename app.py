@@ -157,7 +157,7 @@ def local_school_answer(question: str, kb: Knowledge) -> str | None:
 
     # Intentions explicites : elles évitent qu'un modèle réponde qu'il manque des informations.
     intents = [
-        (("frais", "scolarite"), ("frais de scolarite", "frais de scolarité")),
+        (("frais", "scolarite"), ("quels sont les frais de scolarite du lpelia", "Quels sont les frais de scolarité du LPELIA ?")),
         (("inscrire",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
         (("inscription",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
         (("admission",), ("comment s'inscrire au lpelia", "comment s'inscrire au LPELIA")),
