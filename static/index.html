@@ -31,7 +31,7 @@ body::before {
   transition: background 1s ease;
 }
 .app { position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }\n.brand-logo { width: 42px; height: 54px; object-fit: contain; flex: none; }\n.brand-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand { font-weight: 600; letter-spacing: 0.02em; font-size: 0.95rem; }
 .status { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
 .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot, #5d6384); box-shadow: 0 0 10px var(--dot, transparent); transition: background .6s, box-shadow .6s; }
@@ -89,7 +89,7 @@ form:focus-within { border-color: var(--glow); }
 <body>
 <div class="app">
   <header>
-    <span class="brand" id="brand">LPELIA Accueil</span>
+    <div class="brand-wrap"><img class="brand-logo" src="/static/lpelia-logo.svg" alt="Logo METFPA LPELIA"><span class="brand" id="brand">LPELIA Accueil</span></div>
     <span class="status" id="status" aria-live="polite"><i></i><span id="statusTxt">Prêt</span></span>
     <button class="ghost" id="openHist" type="button">Historique</button>
   </header>
